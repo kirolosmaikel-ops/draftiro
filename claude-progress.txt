@@ -1,0 +1,50 @@
+Session 1 — LegalMind / Draftiro Scaffold
+==========================================
+Date: 2026-04-17
+
+COMPLETED:
+✅ 1. Next.js 14 App Router project scaffolded with TypeScript
+✅ 2. Tailwind CSS configured with full Draftiro design system:
+       - Fonts: Newsreader (headline) + Manrope (body)
+       - Primary: #d44439
+       - Surface: #FFFFFF
+       - Text/ink: #1D1D1F
+       - All color tokens, border radii, shadows
+✅ 3. Supabase schema — 8 tables:
+       - firms, users, cases, clients, documents
+       - document_chunks (with pgvector 1536-dim embeddings)
+       - chat_sessions, chat_messages
+       - pgvector extension enabled
+       - IVFFlat index on embeddings for fast similarity search
+✅ 4. RLS policies on every table:
+       - firms: select/update own firm
+       - users: same-firm select, self insert/update/delete
+       - clients/cases/documents/chunks: full CRUD scoped to firm
+       - chat_sessions: firm-scoped, user owns their sessions
+       - chat_messages: firm-scoped CRUD
+       - Helper function auth_firm_id() for efficient policy evaluation
+✅ 5. Auth pages matching legalmind.html design:
+       - /login — dark left panel + light right panel
+       - Magic link tab: email → send OTP via Supabase
+       - Password tab: email + password sign-in
+       - /auth/callback — exchange code for session
+✅ 6. Onboarding:
+       - /onboarding/step1 — file upload dropzone with drag+drop
+       - /onboarding/step2 — first chat interaction preview
+       - Progress bar, sample chips, skip option
+✅ 7. Protected route middleware:
+       - Redirects unauthenticated users to /login
+       - Redirects authenticated users away from /login to /dashboard
+       - Uses @supabase/ssr for session management
+✅ 8. .env.local.example with all variables documented
+✅ 9. Supabase local dev config (supabase/config.toml)
+✅ 10. Git initialized and committed
+
+NEXT STEPS (Session 2):
+- Full dashboard UI (matching legalmind.html dashboard screen)
+- Document chat screen with document viewer + AI chat panel
+- Knowledge base / client management screen
+- Draft editor screen
+- Supabase Storage integration for document uploads
+- Claude/OpenAI API integration for document chunking + chat
+- Vector similarity search for RAG
