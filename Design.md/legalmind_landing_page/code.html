@@ -1,0 +1,318 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>LegalMind | Your AI Legal Workspace</title>
+<!-- Fonts -->
+<link href="https://fonts.googleapis.com/css2?family=Newsreader:ital,wght@0,400;0,600;0,700;1,400&amp;family=Manrope:wght@400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<!-- Icons -->
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script id="tailwind-config">
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            "colors": {
+                    "background": "#f9f9f7",
+                    "on-secondary-fixed-variant": "#3e4759",
+                    "surface-dim": "#dadad8",
+                    "secondary-fixed": "#dae2f9",
+                    "on-error": "#ffffff",
+                    "inverse-primary": "#b7c6ee",
+                    "surface-container-high": "#e8e8e6",
+                    "secondary-container": "#d7e0f6",
+                    "error": "#ba1a1a",
+                    "on-tertiary-fixed": "#261900",
+                    "secondary": "#555f71",
+                    "surface-variant": "#e2e3e1",
+                    "on-primary-fixed-variant": "#384668",
+                    "outline": "#75777f",
+                    "tertiary-fixed": "#ffdea4",
+                    "on-secondary-container": "#5a6376",
+                    "on-background": "#1a1c1b",
+                    "outline-variant": "#c5c6cf",
+                    "surface-container": "#eeeeec",
+                    "surface-container-highest": "#e2e3e1",
+                    "on-secondary": "#ffffff",
+                    "on-primary-container": "#8392b7",
+                    "surface-container-low": "#f4f4f2",
+                    "primary-fixed": "#d9e2ff",
+                    "surface-bright": "#f9f9f7",
+                    "on-error-container": "#93000a",
+                    "tertiary-fixed-dim": "#e4c285",
+                    "primary-container": "#1b2a4a",
+                    "secondary-fixed-dim": "#bdc6dc",
+                    "on-primary": "#ffffff",
+                    "surface-container-lowest": "#ffffff",
+                    "tertiary": "#201500",
+                    "primary-fixed-dim": "#b7c6ee",
+                    "on-primary-fixed": "#0a1a3a",
+                    "on-surface-variant": "#45464e",
+                    "on-tertiary": "#ffffff",
+                    "on-secondary-fixed": "#121c2c",
+                    "on-tertiary-fixed-variant": "#5a4312",
+                    "inverse-on-surface": "#f1f1ef",
+                    "on-surface": "#1a1c1b",
+                    "primary": "#041534",
+                    "surface-tint": "#4f5e81",
+                    "on-tertiary-container": "#ac8e56",
+                    "surface": "#f9f9f7",
+                    "inverse-surface": "#2f3130",
+                    "error-container": "#ffdad6",
+                    "tertiary-container": "#3a2800"
+            },
+            "borderRadius": {
+                    "DEFAULT": "0.125rem",
+                    "lg": "0.25rem",
+                    "xl": "0.5rem",
+                    "full": "0.75rem"
+            },
+            "fontFamily": {
+                    "headline": ["Newsreader", "serif"],
+                    "body": ["Manrope", "sans-serif"],
+                    "label": ["Manrope", "sans-serif"]
+            }
+          },
+        },
+      }
+    </script>
+<style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        .serif-italic { font-family: 'Newsreader'; font-style: italic; }
+        .tonal-shift { background-color: #f4f4f2; }
+        .signature-gradient {
+            background: linear-gradient(135deg, #041534 0%, #1B2A4A 100%);
+        }
+        .ghost-border {
+            outline: 1px solid rgba(197, 198, 207, 0.2);
+        }
+    </style>
+</head>
+<body class="bg-background text-on-background font-body selection:bg-tertiary-fixed selection:text-on-tertiary-fixed">
+<!-- Top Navigation Shell -->
+<nav class="fixed top-0 w-full z-50 bg-[#F9F9F7]/80 backdrop-blur-md shadow-[0px_24px_48px_-12px_rgba(26,28,27,0.04)]">
+<div class="flex justify-between items-center max-w-7xl mx-auto px-8 py-4">
+<div class="flex items-center gap-12">
+<a class="font-headline text-2xl font-bold text-[#1B2A4A]" href="/">LegalMind</a>
+<div class="hidden md:flex items-center gap-8">
+<a class="text-[#1B2A4A] font-semibold border-b border-[#C9A96E] pb-1 text-sm tracking-wide" href="#">Platform</a>
+<a class="text-[#1B2A4A]/70 hover:text-[#1B2A4A] transition-colors text-sm tracking-wide" href="#">Precedent</a>
+<a class="text-[#1B2A4A]/70 hover:text-[#1B2A4A] transition-colors text-sm tracking-wide" href="#">Insights</a>
+<a class="text-[#1B2A4A]/70 hover:text-[#1B2A4A] transition-colors text-sm tracking-wide" href="#">Security</a>
+</div>
+</div>
+<div class="flex items-center gap-6">
+<a class="text-[#1B2A4A]/70 hover:text-[#1B2A4A] text-sm font-medium transition-colors" href="#">Sign In</a>
+<a class="signature-gradient text-on-primary px-5 py-2.5 rounded-lg text-sm font-semibold shadow-sm hover:opacity-90 active:scale-[0.99] transition-all" href="#">Get Started</a>
+</div>
+</div>
+</nav>
+<main class="pt-32">
+<!-- Hero Section -->
+<section class="max-w-7xl mx-auto px-8 mb-32 grid lg:grid-cols-12 gap-12 items-center">
+<div class="lg:col-span-7">
+<div class="inline-flex items-center gap-2 px-3 py-1 bg-surface-container-low rounded-full mb-8 ghost-border">
+<span class="text-[10px] font-label uppercase tracking-[0.15em] text-on-tertiary-container font-bold">New Version 2.0</span>
+<span class="w-1 h-1 bg-on-tertiary-container rounded-full"></span>
+<span class="text-xs text-on-surface-variant">Enhanced Citations Engine</span>
+</div>
+<h1 class="font-headline text-6xl md:text-7xl text-primary leading-[1.05] tracking-tight mb-8">
+                    Your AI Legal Workspace. <br/>
+<span class="serif-italic font-normal">Built for the Way You Actually Work.</span>
+</h1>
+<p class="text-xl text-on-surface-variant max-w-xl mb-10 leading-relaxed">
+                    Upload case files, chat with documents, draft motions, and manage client knowledge — all in one calm, focused workspace designed for the modern practice.
+                </p>
+<div class="flex flex-col sm:flex-row items-center gap-4">
+<button class="signature-gradient text-on-primary px-8 py-4 rounded-xl text-lg font-bold shadow-xl hover:opacity-95 transition-all w-full sm:w-auto">
+                        Start Free Trial — No Credit Card
+                    </button>
+<div class="flex items-center gap-4 px-6">
+<div class="flex -space-x-3">
+<div class="w-10 h-10 rounded-full border-2 border-background bg-surface-dim"></div>
+<div class="w-10 h-10 rounded-full border-2 border-background bg-surface-dim"></div>
+<div class="w-10 h-10 rounded-full border-2 border-background bg-surface-dim"></div>
+</div>
+<div class="flex flex-col">
+<div class="flex text-[#C9A96E]">
+<span class="material-symbols-outlined text-sm" style="font-variation-settings: 'FILL' 1;">star</span>
+<span class="material-symbols-outlined text-sm" style="font-variation-settings: 'FILL' 1;">star</span>
+<span class="material-symbols-outlined text-sm" style="font-variation-settings: 'FILL' 1;">star</span>
+<span class="material-symbols-outlined text-sm" style="font-variation-settings: 'FILL' 1;">star</span>
+<span class="material-symbols-outlined text-sm" style="font-variation-settings: 'FILL' 1;">star</span>
+</div>
+<span class="text-xs font-medium text-on-surface-variant">Trusted by solo attorneys across 38 states</span>
+</div>
+</div>
+</div>
+</div>
+<div class="lg:col-span-5 relative">
+<div class="aspect-[4/5] rounded-2xl overflow-hidden shadow-2xl ghost-border bg-surface-container-lowest">
+<img alt="Legal Workspace" class="w-full h-full object-cover opacity-90 mix-blend-multiply" data-alt="Interior of a modern high-end law firm office with dark wood, heavy paper documents, and a sleek laptop showing a clean UI" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDEjZG-enYiD_LTz0gTz5D4_uRRnQGYmyGfNh8iXlATgK5asTCBeN_QSd5cPcz3cZrcxZwPsGX6Rn7UGUv0QdjST1TI5mX2vPuQgNRBNHOCul6FuXQqacOEi6U9gm4dM_g8ttbxtUMz7FlujZTRRWOEtLKjy3srOSVHkQws6jX6QNO_HLSo962dBBKMmsX0HoZbnqwgqjlHapDmY_dTE40dqCOzewFDg_R94SaHfmke7L4fjE6CXjcgJCJxulAFW6N7CYU78Lnd0nw"/>
+<div class="absolute inset-0 bg-gradient-to-t from-primary/20 to-transparent"></div>
+</div>
+<!-- Abstract Floating Element -->
+<div class="absolute -bottom-6 -left-6 bg-surface-container-lowest p-6 rounded-xl shadow-[0px_24px_48px_-12px_rgba(26,28,27,0.08)] ghost-border max-w-[240px]">
+<span class="material-symbols-outlined text-on-tertiary-container mb-3" data-icon="verified_user">verified_user</span>
+<p class="text-sm font-semibold text-primary mb-1">Bank-Grade Security</p>
+<p class="text-xs text-on-surface-variant leading-relaxed">SOC2 Type II compliant &amp; end-to-end encryption for every file.</p>
+</div>
+</div>
+</section>
+<!-- Bento Features Section -->
+<section class="bg-surface-container-low py-32">
+<div class="max-w-7xl mx-auto px-8">
+<div class="flex flex-col md:flex-row md:items-end justify-between mb-16 gap-8">
+<div class="max-w-2xl">
+<span class="font-label text-xs uppercase tracking-[0.2em] text-on-tertiary-container font-bold mb-4 block">Practice Efficiency</span>
+<h2 class="font-headline text-5xl text-primary tracking-tight">The Modern Litigator's <br/><span class="serif-italic">Digital Arsenal</span></h2>
+</div>
+<p class="text-on-surface-variant max-w-sm">We don't just search your documents; we understand the legal context behind them.</p>
+</div>
+<div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+<!-- Feature Card 1: Document Chat -->
+<div class="bg-surface-container-lowest p-10 rounded-2xl ghost-border flex flex-col justify-between hover:translate-y-[-4px] transition-transform duration-500 group">
+<div>
+<div class="w-12 h-12 rounded-lg bg-surface-container-high flex items-center justify-center mb-8 group-hover:bg-primary transition-colors">
+<span class="material-symbols-outlined text-primary group-hover:text-on-primary" data-icon="forum">forum</span>
+</div>
+<h3 class="font-headline text-2xl text-primary mb-4">Document Chat</h3>
+<p class="text-on-surface-variant leading-relaxed">Ask questions of your entire case file. Get answers instantly with exact page citations and clickable highlights.</p>
+</div>
+<div class="mt-12 pt-8 border-t border-surface-container-high">
+<span class="text-xs font-label uppercase tracking-widest text-[#C9A96E] font-bold">Smart Citations</span>
+</div>
+</div>
+<!-- Feature Card 2: AI Research -->
+<div class="bg-surface-container-lowest p-10 rounded-2xl ghost-border flex flex-col justify-between hover:translate-y-[-4px] transition-transform duration-500 group">
+<div>
+<div class="w-12 h-12 rounded-lg bg-surface-container-high flex items-center justify-center mb-8 group-hover:bg-primary transition-colors">
+<span class="material-symbols-outlined text-primary group-hover:text-on-primary" data-icon="menu_book">menu_book</span>
+</div>
+<h3 class="font-headline text-2xl text-primary mb-4">AI Research</h3>
+<p class="text-on-surface-variant leading-relaxed">Summarize multi-hundred page opinions into core holdings and prep powerful arguments in minutes, not hours.</p>
+</div>
+<div class="mt-12 pt-8 border-t border-surface-container-high">
+<span class="text-xs font-label uppercase tracking-widest text-[#C9A96E] font-bold">Case Briefing</span>
+</div>
+</div>
+<!-- Feature Card 3: Draft Assistant -->
+<div class="bg-surface-container-lowest p-10 rounded-2xl ghost-border flex flex-col justify-between hover:translate-y-[-4px] transition-transform duration-500 group">
+<div>
+<div class="w-12 h-12 rounded-lg bg-surface-container-high flex items-center justify-center mb-8 group-hover:bg-primary transition-colors">
+<span class="material-symbols-outlined text-primary group-hover:text-on-primary" data-icon="edit_note">edit_note</span>
+</div>
+<h3 class="font-headline text-2xl text-primary mb-4">Draft Assistant</h3>
+<p class="text-on-surface-variant leading-relaxed">Generate high-quality first drafts of NDAs, motions, and demand letters based on your firm's specific precedents.</p>
+</div>
+<div class="mt-12 pt-8 border-t border-surface-container-high">
+<span class="text-xs font-label uppercase tracking-widest text-[#C9A96E] font-bold">Precedent Engine</span>
+</div>
+</div>
+</div>
+</div>
+</section>
+<!-- Proof Section -->
+<section class="py-32 bg-background overflow-hidden">
+<div class="max-w-7xl mx-auto px-8">
+<div class="grid lg:grid-cols-2 gap-24 items-center">
+<div class="relative">
+<div class="absolute -top-12 -left-12 text-surface-container-high text-9xl font-headline italic opacity-50">"</div>
+<blockquote class="relative z-10">
+<p class="font-headline text-3xl md:text-4xl text-primary leading-tight mb-8">
+                                LegalMind has effectively added an associate to my solo practice without the overhead. I can prep for depositions in half the time.
+                            </p>
+<footer class="flex items-center gap-4">
+<div class="w-12 h-12 rounded-full bg-primary flex items-center justify-center text-on-primary font-bold">JS</div>
+<div>
+<cite class="not-italic font-bold text-primary block">Jonathan Sterling, Esq.</cite>
+<span class="text-sm text-on-surface-variant">Sterling Law Group, P.C.</span>
+</div>
+</footer>
+</blockquote>
+</div>
+<div class="grid grid-cols-2 gap-4">
+<div class="bg-surface-container-low p-8 rounded-xl ghost-border">
+<div class="text-4xl font-headline font-bold text-primary mb-2">40%</div>
+<p class="text-sm text-on-surface-variant font-medium">Reduction in manual research time per case.</p>
+</div>
+<div class="bg-surface-container-low p-8 rounded-xl ghost-border mt-8">
+<div class="text-4xl font-headline font-bold text-primary mb-2">10k+</div>
+<p class="text-sm text-on-surface-variant font-medium">Documents processed daily with bank-grade security.</p>
+</div>
+</div>
+</div>
+</div>
+</section>
+<!-- CTA Section -->
+<section class="max-w-7xl mx-auto px-8 mb-32">
+<div class="signature-gradient rounded-[2rem] p-16 md:p-24 text-center relative overflow-hidden">
+<div class="absolute top-0 right-0 w-96 h-96 bg-[#C9A96E] opacity-5 rounded-full blur-3xl -mr-48 -mt-48"></div>
+<div class="relative z-10 max-w-3xl mx-auto">
+<h2 class="font-headline text-5xl md:text-6xl text-white mb-8">Ready to evolve your practice?</h2>
+<p class="text-white/70 text-lg mb-12">Join hundreds of attorneys who are reclaiming their time with the industry's most focused AI legal workspace.</p>
+<div class="flex flex-col sm:flex-row justify-center gap-6">
+<button class="bg-[#C9A96E] text-primary px-10 py-5 rounded-xl text-lg font-bold shadow-2xl hover:bg-tertiary-fixed transition-all">
+                            Start Your 14-Day Free Trial
+                        </button>
+<button class="bg-white/10 text-white backdrop-blur-md px-10 py-5 rounded-xl text-lg font-bold hover:bg-white/20 transition-all border border-white/20">
+                            Book a Consultation
+                        </button>
+</div>
+<p class="mt-8 text-white/40 text-sm font-label uppercase tracking-widest">No credit card required • SOC2 Type II Certified</p>
+</div>
+</div>
+</section>
+</main>
+<!-- Footer Shell -->
+<footer class="bg-[#1B2A4A] w-full py-16 px-8">
+<div class="max-w-7xl mx-auto">
+<div class="flex flex-col md:flex-row justify-between items-start gap-12 mb-16">
+<div>
+<span class="font-headline text-2xl text-[#C9A96E] mb-6 block">LegalMind</span>
+<p class="text-[#F9F9F7]/60 text-sm max-w-xs leading-relaxed">
+                        The definitive AI workspace for the modern legal professional. Intellectual rigor meets digital efficiency.
+                    </p>
+</div>
+<div class="flex flex-wrap gap-12 md:gap-24">
+<div class="flex flex-col gap-4">
+<span class="font-label text-xs uppercase tracking-widest text-[#C9A96E] font-bold">Product</span>
+<a class="text-[#F9F9F7]/60 hover:text-[#C9A96E] text-sm transition-colors" href="#">Features</a>
+<a class="text-[#F9F9F7]/60 hover:text-[#C9A96E] text-sm transition-colors" href="#">Pricing</a>
+<a class="text-[#F9F9F7]/60 hover:text-[#C9A96E] text-sm transition-colors" href="#">Security</a>
+</div>
+<div class="flex flex-col gap-4">
+<span class="font-label text-xs uppercase tracking-widest text-[#C9A96E] font-bold">Legal</span>
+<a class="text-[#F9F9F7]/60 hover:text-[#C9A96E] text-sm transition-colors" href="#">Terms of Service</a>
+<a class="text-[#F9F9F7]/60 hover:text-[#C9A96E] text-sm transition-colors" href="#">Privacy Policy</a>
+<a class="text-[#F9F9F7]/60 hover:text-[#C9A96E] text-sm transition-colors" href="#">Security Standards</a>
+</div>
+<div class="flex flex-col gap-4">
+<span class="font-label text-xs uppercase tracking-widest text-[#C9A96E] font-bold">Company</span>
+<a class="text-[#F9F9F7]/60 hover:text-[#C9A96E] text-sm transition-colors" href="#">About Us</a>
+<a class="text-[#F9F9F7]/60 hover:text-[#C9A96E] text-sm transition-colors" href="#">Careers</a>
+<a class="text-[#F9F9F7]/60 hover:text-[#C9A96E] text-sm transition-colors" href="#">Compliance</a>
+</div>
+</div>
+</div>
+<div class="pt-8 border-t border-white/10 flex flex-col md:flex-row justify-between items-center gap-8">
+<p class="font-label text-[10px] uppercase tracking-widest text-[#F9F9F7]/40 text-center md:text-left">
+                    © 2024 LegalMind AI. All rights reserved. Attorney-Client Privilege Protected.
+                </p>
+<div class="flex items-center gap-6">
+<!-- Security Badges -->
+<div class="flex items-center gap-3 opacity-50 grayscale hover:grayscale-0 transition-all cursor-default">
+<span class="material-symbols-outlined text-[#F9F9F7] text-xl" data-icon="lock">lock</span>
+<span class="material-symbols-outlined text-[#F9F9F7] text-xl" data-icon="gpp_maybe">gpp_maybe</span>
+<span class="material-symbols-outlined text-[#F9F9F7] text-xl" data-icon="verified">verified</span>
+</div>
+</div>
+</div>
+</div>
+</footer>
+</body></html>

@@ -1,0 +1,249 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Document Chat View | LegalMind</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Newsreader:ital,opsz,wght@0,6..72,200..800;1,6..72,200..800&amp;family=Manrope:wght@200..800&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">tailwind.config = {darkMode: "class", theme: {extend: {colors: {"on-error-container": "#93000a", "primary-fixed": "#ffdad5", "on-primary-fixed": "#410001", "surface-dim": "#eed4d1", "surface-bright": "#fff8f7", "on-tertiary": "#ffffff", "on-tertiary-container": "#92b1ff", "tertiary-fixed": "#d9e2ff", "secondary-fixed": "#ffdad5", "on-secondary-fixed": "#3d0504", "inverse-on-surface": "#ffedea", primary: "#660003", "surface-tint": "#b12b23", background: "#fff8f7", "on-background": "#261816", "surface-container": "#ffe9e6", "surface-container-lowest": "#ffffff", "on-primary-container": "#ff968a", "on-primary": "#ffffff", "inverse-surface": "#3c2d2b", "surface-container-high": "#fde2df", outline: "#8d706c", "on-tertiary-fixed": "#001945", "on-secondary-container": "#783129", "surface-variant": "#f7ddd9", "surface-container-low": "#fff0ee", error: "#ba1a1a", "on-secondary-fixed-variant": "#773029", tertiary: "#002b6c", "secondary-container": "#fe9c8f", "primary-container": "#8d0d0d", "secondary-fixed-dim": "#ffb4aa", "on-tertiary-fixed-variant": "#04429b", "on-surface-variant": "#59413d", "on-error": "#ffffff", "error-container": "#ffdad6", "primary-fixed-dim": "#ffb4aa", "on-secondary": "#ffffff", "tertiary-fixed-dim": "#b0c6ff", "surface-container-highest": "#f7ddd9", "outline-variant": "#e1bfba", secondary: "#95473e", surface: "#fff8f7", "inverse-primary": "#ffb4aa", "tertiary-container": "#004099", "on-surface": "#261816", "on-primary-fixed-variant": "#8f0f0e"}, borderRadius: {DEFAULT: "0.125rem", lg: "0.25rem", xl: "0.5rem", full: "0.75rem"}, fontFamily: {headline: ["Newsreader"], body: ["Manrope"], label: ["Manrope"], display: "Newsreader"}}}};</script>
+<style>
+        .material-symbols-outlined { font-variation-settings: 'FILL' 0, 'wght' 300, 'GRAD' 0, 'opsz' 24; }
+        .custom-scrollbar::-webkit-scrollbar { width: 4px; }
+        .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background: #c5c6cf; border-radius: 10px; }
+    </style>
+</head>
+<body class="bg-background font-body text-on-surface selection:bg-tertiary-fixed selection:text-on-tertiary-fixed">
+<!-- Sidebar Shell -->
+<aside class="fixed inset-y-0 left-0 z-50 flex flex-col w-64 bg-[#1B2A4A] dark:bg-[#041534]">
+<div class="p-8">
+<h1 class="text-xl font-headline italic text-white mb-1">The Digital Jurist</h1>
+<p class="font-label text-[10px] uppercase tracking-[0.2em] text-on-primary-container">Senior Associate</p>
+</div>
+<button class="mx-6 mb-8 py-3 bg-[#C9A96E] text-primary font-bold flex items-center justify-center gap-2 rounded-sm active:scale-95 transition-transform">
+<span class="material-symbols-outlined" data-icon="add">add</span>
+<span class="font-label uppercase tracking-wider text-xs">New Case</span>
+</button>
+<nav class="flex-1 px-2 space-y-1">
+<a class="text-white/70 hover:text-white flex items-center px-6 py-3 transition-colors hover:bg-[#F9F9F7]/5 group" href="#">
+<span class="material-symbols-outlined mr-4" data-icon="dashboard">dashboard</span>
+<span class="font-label text-xs uppercase tracking-wider">Dashboard</span>
+</a>
+<!-- Active Tab -->
+<a class="bg-[#F9F9F7]/10 text-white font-semibold border-l-4 border-[#C9A96E] flex items-center px-[22px] py-3 transition-colors" href="#">
+<span class="material-symbols-outlined mr-4" data-icon="folder_open">folder_open</span>
+<span class="font-label text-xs uppercase tracking-wider">Cases &amp; Documents</span>
+</a>
+<a class="text-white/70 hover:text-white flex items-center px-6 py-3 transition-colors hover:bg-[#F9F9F7]/5 group" href="#">
+<span class="material-symbols-outlined mr-4" data-icon="library_books">library_books</span>
+<span class="font-label text-xs uppercase tracking-wider">Knowledge Base</span>
+</a>
+<a class="text-white/70 hover:text-white flex items-center px-6 py-3 transition-colors hover:bg-[#F9F9F7]/5 group" href="#">
+<span class="material-symbols-outlined mr-4" data-icon="edit_note">edit_note</span>
+<span class="font-label text-xs uppercase tracking-wider">Draft Editor</span>
+</a>
+<a class="text-white/70 hover:text-white flex items-center px-6 py-3 transition-colors hover:bg-[#F9F9F7]/5 group" href="#">
+<span class="material-symbols-outlined mr-4" data-icon="smart_toy">smart_toy</span>
+<span class="font-label text-xs uppercase tracking-wider">AI Assistant</span>
+</a>
+<a class="text-white/70 hover:text-white flex items-center px-6 py-3 transition-colors hover:bg-[#F9F9F7]/5 group" href="#">
+<span class="material-symbols-outlined mr-4" data-icon="settings">settings</span>
+<span class="font-label text-xs uppercase tracking-wider">Settings</span>
+</a>
+</nav>
+<div class="mt-auto border-t border-white/5 py-6">
+<a class="text-white/70 hover:text-white flex items-center px-6 py-3 transition-colors" href="#">
+<span class="material-symbols-outlined mr-4" data-icon="help_outline">help_outline</span>
+<span class="font-label text-xs uppercase tracking-wider">Support</span>
+</a>
+<a class="text-white/70 hover:text-white flex items-center px-6 py-3 transition-colors" href="#">
+<span class="material-symbols-outlined mr-4" data-icon="logout">logout</span>
+<span class="font-label text-xs uppercase tracking-wider">Sign Out</span>
+</a>
+</div>
+</aside>
+<!-- Main Workspace -->
+<main class="ml-64 h-screen flex flex-col overflow-hidden">
+<!-- Top Nav (Document Title & Context) -->
+<header class="flex justify-between items-center w-full px-8 h-16 bg-[#F9F9F7]/80 backdrop-blur-md border-b border-outline-variant/20 sticky top-0 z-40">
+<div class="flex items-center gap-6">
+<h2 class="font-headline text-lg font-bold text-primary">Chen v. Meridian — Deposition of J. Smith.pdf</h2>
+<div class="flex items-center gap-3 text-xs font-label uppercase tracking-widest text-on-surface-variant">
+<div class="flex items-center gap-1 cursor-pointer hover:text-primary transition-colors">
+                        Case: Chen v. Meridian Corp
+                        <span class="material-symbols-outlined text-sm" data-icon="expand_more">expand_more</span>
+</div>
+<span class="text-outline-variant">|</span>
+<div class="flex items-center gap-1 cursor-pointer hover:text-primary transition-colors">
+                        Client: Margaret Chen
+                        <span class="material-symbols-outlined text-sm" data-icon="expand_more">expand_more</span>
+</div>
+</div>
+</div>
+<div class="flex items-center gap-4">
+<button class="text-primary hover:text-[#C9A96E] transition-all">
+<span class="material-symbols-outlined" data-icon="notifications">notifications</span>
+</button>
+<button class="text-primary hover:text-[#C9A96E] transition-all">
+<span class="material-symbols-outlined" data-icon="history">history</span>
+</button>
+<img class="w-8 h-8 rounded-full bg-surface-container object-cover border border-outline-variant/20" data-alt="professional portrait of a senior legal associate in a dark suit with soft office lighting" src="https://lh3.googleusercontent.com/aida-public/AB6AXuAzor6_r1yY5jsTMrHpOTDkVLzLn1tlCh5quAtysIcnukF-Vydbreeb2RQP4o5ra-0BOH8WNDme04PcZVo82vJP-04FydogML7Xza5bt8gHwvm6tK24vFIe48CY3H1YILXyXZF30sNey8CmjVJvbS23u5fkSoSAJJzbYfAhmBwHYNW9580UwvIezMU-kdivH5wa6ks78F8Itsvd6EwRJbnC3tttgpmQDiv9AkugQSY-l_-LeTxG45E9F8ot0FJk8Ju4O-M8AVMiUW4"/>
+</div>
+</header>
+<!-- Split View Layout -->
+<div class="flex flex-1 overflow-hidden">
+<!-- LEFT PANEL: Document Viewer (55%) -->
+<section class="w-[55%] flex flex-col bg-surface-container-low border-r border-outline-variant/10">
+<!-- Viewer Controls -->
+<div class="px-6 py-3 bg-white/50 flex justify-between items-center border-b border-outline-variant/10">
+<div class="flex gap-2">
+<button class="p-1 hover:bg-surface-container transition-colors rounded">
+<span class="material-symbols-outlined text-xl" data-icon="zoom_in">zoom_in</span>
+</button>
+<button class="p-1 hover:bg-surface-container transition-colors rounded">
+<span class="material-symbols-outlined text-xl" data-icon="zoom_out">zoom_out</span>
+</button>
+</div>
+<div class="flex items-center gap-4 text-xs font-label uppercase tracking-widest text-on-surface-variant">
+<button class="p-1 hover:text-primary"><span class="material-symbols-outlined" data-icon="chevron_left">chevron_left</span></button>
+<span>Page 12 of 47</span>
+<button class="p-1 hover:text-primary"><span class="material-symbols-outlined" data-icon="chevron_right">chevron_right</span></button>
+</div>
+<div class="flex gap-2">
+<button class="p-1 hover:bg-surface-container transition-colors rounded">
+<span class="material-symbols-outlined text-xl" data-icon="print">print</span>
+</button>
+</div>
+</div>
+<!-- Document Content (Scrollable) -->
+<div class="flex-1 overflow-y-auto p-12 custom-scrollbar flex justify-center bg-surface-dim/20">
+<div class="w-full max-w-2xl bg-white shadow-[0_4px_20px_-4px_rgba(0,0,0,0.05)] p-16 min-h-[1200px]">
+<div class="space-y-6 font-serif text-[13pt] leading-[2] text-[#2c2c2c]">
+<p>8      Q: Mr. Smith, turning back to the afternoon of</p>
+<p>9      October 14th, 2022. You were present in the</p>
+<p>10     boardroom when the agreement was finalized?</p>
+<p class="bg-[#C9A96E]/20 relative">
+                                11     A: Yes, that is correct. We gathered around 3:00 PM.
+                                <span class="absolute -right-12 top-0 bg-[#C9A96E] text-white p-1 rounded-sm shadow-md cursor-pointer hover:scale-110 transition-transform">
+<span class="material-symbols-outlined text-xs" data-icon="smart_toy">smart_toy</span>
+</span>
+</p>
+<p class="bg-[#C9A96E]/20">
+                                12     Q: And did you personally witness Ms. Chen sign
+                            </p>
+<p class="bg-[#C9A96E]/20">
+                                13     the Master Service Agreement at that time?
+                            </p>
+<p class="bg-[#C9A96E]/20">
+                                14     A: I did. She signed with a black fountain pen.
+                            </p>
+<p>15     Q: Was anyone else present in the room who</p>
+<p>16     could corroborate this event?</p>
+<p>17     A: Mr. Henderson from Legal was there, and the</p>
+<p>18     administrative assistant, Sarah Miller.</p>
+<p>19     Q: Thank you. Let's move to Exhibit D...</p>
+<div class="pt-12 text-center text-xs text-on-surface-variant font-label opacity-30">
+                                [End of Page 12]
+                            </div>
+</div>
+</div>
+</div>
+</section>
+<!-- RIGHT PANEL: AI Chat (45%) -->
+<section class="w-[45%] flex flex-col bg-white">
+<!-- AI Header -->
+<div class="px-8 py-4 border-b border-outline-variant/10 flex justify-between items-center">
+<div class="flex items-center gap-3">
+<div class="w-10 h-10 rounded-full bg-primary flex items-center justify-center text-white">
+<span class="material-symbols-outlined" data-icon="smart_toy">smart_toy</span>
+</div>
+<div>
+<h3 class="font-headline font-bold text-primary">AI Document Assistant</h3>
+<p class="text-[10px] font-label uppercase tracking-widest text-on-tertiary-fixed-variant">Analyzing deposition transcript</p>
+</div>
+</div>
+<div class="flex gap-2">
+<button class="px-3 py-1.5 border border-outline-variant/30 hover:bg-surface-container transition-colors rounded-sm flex items-center gap-2 text-[10px] font-label uppercase tracking-wider">
+<span class="material-symbols-outlined text-base" data-icon="description">description</span>
+                            Export .docx
+                        </button>
+<button class="px-3 py-1.5 border border-outline-variant/30 hover:bg-surface-container transition-colors rounded-sm flex items-center gap-2 text-[10px] font-label uppercase tracking-wider">
+<span class="material-symbols-outlined text-base" data-icon="picture_as_pdf">picture_as_pdf</span>
+                            Export .pdf
+                        </button>
+</div>
+</div>
+<!-- Chat Thread -->
+<div class="flex-1 overflow-y-auto p-8 space-y-8 custom-scrollbar bg-[#F9F9F7]/30">
+<!-- User Message -->
+<div class="flex flex-col items-end gap-2">
+<div class="bg-primary text-white p-4 rounded-xl rounded-tr-none max-w-[85%] shadow-sm">
+<p class="text-sm">Can you confirm when the contract was signed according to this deposition and who witnessed it?</p>
+</div>
+<span class="text-[9px] font-label text-on-surface-variant/50 uppercase tracking-tighter">You • 2:41 PM</span>
+</div><div class="border-t border-outline-variant/10 w-full opacity-50"></div><div class="border-t border-outline-variant/10 w-full opacity-50"></div><div class="border-t border-outline-variant/10 w-full opacity-50"></div>
+<!-- AI Response -->
+<div class="flex flex-col items-start gap-2">
+<div class="bg-surface-container-low p-5 rounded-xl rounded-tl-none max-w-[90%] border border-outline-variant/10 shadow-sm">
+<div class="prose prose-sm text-on-surface leading-relaxed">
+<p>According to the testimony of J. Smith, the Master Service Agreement was signed on the afternoon of <strong>October 14th, 2022</strong>, at approximately 3:00 PM.</p>
+<p class="mt-2">The following individuals were present as witnesses:</p>
+<ul class="list-disc ml-4 mt-1">
+<li>J. Smith (Deponent)</li>
+<li>Mr. Henderson (Legal)</li>
+<li>Sarah Miller (Administrative Assistant)</li>
+</ul>
+<div class="mt-4 pt-4 border-t border-outline-variant/20">
+<button class="text-[#C9A96E] font-bold text-xs hover:underline flex items-center gap-1 underline">
+<span class="material-symbols-outlined text-sm" data-icon="link">link</span>
+                                        [Page 12, Line 8–14]
+                                    </button>
+</div>
+</div>
+</div>
+<span class="text-[9px] font-label text-on-surface-variant/50 uppercase tracking-tighter">LegalMind AI • 2:42 PM</span>
+</div>
+<!-- User Follow-up -->
+<div class="flex flex-col items-end gap-2">
+<div class="bg-primary text-white p-4 rounded-xl rounded-tr-none max-w-[85%] shadow-sm">
+<p class="text-sm">Were there any other witnesses mentioned later in the text?</p>
+</div>
+<span class="text-[9px] font-label text-on-surface-variant/50 uppercase tracking-tighter">You • 2:43 PM</span>
+</div>
+<!-- AI Typing Indicator -->
+<div class="flex items-start gap-3 opacity-60">
+<div class="bg-surface-container-high px-4 py-3 rounded-full flex gap-1">
+<div class="w-1.5 h-1.5 bg-primary/40 rounded-full animate-bounce"></div>
+<div class="w-1.5 h-1.5 bg-primary/40 rounded-full animate-bounce [animation-delay:0.2s]"></div>
+<div class="w-1.5 h-1.5 bg-primary/40 rounded-full animate-bounce [animation-delay:0.4s]"></div>
+</div>
+</div>
+</div>
+<!-- Input Area -->
+<div class="p-6 border-t border-outline-variant/20 bg-white">
+<div class="relative group">
+<textarea class="w-full pl-12 pr-12 py-4 bg-surface-container-low border-b border-outline-variant/40 focus:ring-0 resize-none transition-all text-sm font-body placeholder:text-on-surface-variant/50 focus:border-b-2 focus:border-[#041534]" placeholder="Ask a question about this document..." rows="2"></textarea>
+<div class="absolute left-4 top-4 text-on-surface-variant/40 hover:text-primary transition-colors cursor-pointer">
+<span class="material-symbols-outlined" data-icon="attach_file">attach_file</span>
+</div>
+<button class="absolute right-4 bottom-4 w-10 h-10 bg-primary text-white flex items-center justify-center rounded-sm hover:bg-[#041534] transition-all group-focus-within:translate-y-0 translate-y-1 opacity-0 group-focus-within:opacity-100">
+<span class="material-symbols-outlined" data-icon="send">send</span>
+</button>
+</div>
+<div class="mt-3 flex justify-between items-center px-1">
+<p class="text-[10px] text-on-surface-variant/60 font-label tracking-wider">AI MAY INCORRECTLY INTERPRET NUANCE. ALWAYS VERIFY CITATIONS.</p>
+<div class="flex gap-4">
+<span class="material-symbols-outlined text-sm text-on-surface-variant/40 hover:text-[#C9A96E] cursor-pointer" data-icon="mic">mic</span>
+<span class="material-symbols-outlined text-sm text-on-surface-variant/40 hover:text-[#C9A96E] cursor-pointer" data-icon="g_translate">g_translate</span>
+</div>
+</div>
+</div>
+</section>
+</div>
+</main>
+<!-- Contextual FAB (Hidden as per protocol for Details screen, but present in code for reference) -->
+<!-- <div class="fixed bottom-8 right-8 ... suppressed ..."></div> -->
+</body></html>

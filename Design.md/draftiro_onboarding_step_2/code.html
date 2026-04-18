@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+
+<html lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Draftiro Onboarding - Step 2</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Newsreader:ital,opsz,wght@0,6..72,200..800;1,6..72,200..800&amp;family=Manrope:wght@200..800&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">tailwind.config = {darkMode: "class", theme: {extend: {colors: {"surface-container-highest": "#f7ddd9", "on-secondary-fixed": "#3d0504", "surface-bright": "#fff8f7", "tertiary-container": "#004099", tertiary: "#002b6c", "on-secondary-fixed-variant": "#773029", "inverse-primary": "#ffb4aa", "surface-container-lowest": "#ffffff", "error-container": "#ffdad6", "on-tertiary-container": "#92b1ff", "on-surface-variant": "#59413d", "secondary-container": "#fe9c8f", "on-primary-container": "#ff968a", "on-error-container": "#93000a", "on-tertiary": "#ffffff", "on-error": "#ffffff", outline: "#8d706c", "tertiary-fixed": "#d9e2ff", "surface-container-high": "#fde2df", "on-secondary-container": "#783129", "outline-variant": "#e1bfba", "inverse-on-surface": "#ffedea", primary: "#660003", "primary-fixed": "#ffdad5", "on-primary-fixed": "#410001", "surface-tint": "#b12b23", background: "#fff8f7", "secondary-fixed": "#ffdad5", "on-secondary": "#ffffff", "primary-fixed-dim": "#ffb4aa", "on-tertiary-fixed-variant": "#04429b", "secondary-fixed-dim": "#ffb4aa", secondary: "#95473e", "on-surface": "#261816", "on-primary-fixed-variant": "#8f0f0e", error: "#ba1a1a", surface: "#fff8f7", "tertiary-fixed-dim": "#b0c6ff", "surface-variant": "#f7ddd9", "surface-container": "#ffe9e6", "on-tertiary-fixed": "#001945", "inverse-surface": "#3c2d2b", "on-primary": "#ffffff", "primary-container": "#8d0d0d", "surface-container-low": "#fff0ee", "surface-dim": "#eed4d1", "on-background": "#261816"}, borderRadius: {DEFAULT: "0.125rem", lg: "0.25rem", xl: "0.5rem", full: "0.75rem"}, fontFamily: {headline: ["Newsreader"], body: ["Manrope"], label: ["Manrope"], display: "Newsreader"}}}};</script>
+<style>
+        body { font-family: 'Manrope', sans-serif; background-color: #f9f9f7; }
+        .serif { font-family: 'Newsreader', serif; }
+        .label-caps { font-family: 'Manrope', sans-serif; text-transform: uppercase; letter-spacing: 0.05em; font-size: 0.75rem; }
+        .signature-gradient { background: linear-gradient(135deg, #041534 0%, #1b2a4a 100%); }
+        .material-symbols-outlined { font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24; }
+    </style>
+</head>
+<body class="text-on-surface antialiased overflow-hidden h-screen flex flex-col">
+<!-- Top Navigation Anchor (Manual Suppression of SideNav as this is Transactional/Onboarding) -->
+<header class="w-full bg-surface/80 backdrop-blur-md flex justify-between items-center px-8 py-4 z-50">
+<div class="flex items-center gap-8">
+<span class="text-xl font-medium serif tracking-tight text-primary">Draftiro</span>
+<div class="hidden md:flex items-center gap-2">
+<span class="label-caps text-on-surface-variant font-semibold">Step 2 of 2</span>
+<div class="w-32 h-1 bg-surface-container rounded-full overflow-hidden">
+<div class="w-full h-full signature-gradient"></div>
+</div>
+</div>
+</div>
+<button class="signature-gradient text-on-primary px-6 py-2.5 rounded-lg text-sm font-medium hover:opacity-90 transition-all">
+            Continue to Dashboard
+        </button>
+</header>
+<!-- Main Content: Split View -->
+<main class="flex-1 flex overflow-hidden">
+<!-- Left Panel: Document Viewer -->
+<section class="w-1/2 bg-surface-container-low flex flex-col p-8 overflow-hidden">
+<div class="flex items-center justify-between mb-6">
+<div class="flex items-center gap-3">
+<span class="material-symbols-outlined text-primary">description</span>
+<h2 class="serif text-xl text-primary font-medium">Service_Agreement_v2.pdf</h2>
+</div>
+<div class="flex gap-2">
+<button class="p-2 hover:bg-surface-container-highest rounded-lg transition-colors">
+<span class="material-symbols-outlined text-on-surface-variant">zoom_in</span>
+</button>
+<button class="p-2 hover:bg-surface-container-highest rounded-lg transition-colors">
+<span class="material-symbols-outlined text-on-surface-variant">zoom_out</span>
+</button>
+</div>
+</div>
+<!-- PDF Canvas Emulator -->
+<div class="flex-1 bg-white shadow-sm rounded-lg overflow-y-auto p-12 border border-outline-variant/20">
+<div class="max-w-2xl mx-auto space-y-8">
+<div class="text-center mb-12">
+<h1 class="text-2xl font-bold uppercase tracking-widest text-primary mb-2">Master Services Agreement</h1>
+<p class="text-xs text-on-surface-variant italic">Ref: MSA-2024-089-ALPHA</p>
+</div>
+<div class="space-y-4 text-sm leading-relaxed text-on-surface/80">
+<p class="font-bold text-primary">THIS AGREEMENT is dated October 24, 2023</p>
+<p><span class="font-bold">PARTIES:</span></p>
+<ol class="list-decimal pl-5 space-y-2">
+<li><span class="font-bold">DRAFTIRO SOLUTIONS INC.</span> incorporated and registered in Delaware (the "Service Provider"); and</li>
+<li><span class="font-bold">GLOBAL LOGISTICS CORP.</span> incorporated and registered in New York (the "Client").</li>
+</ol>
+<h3 class="font-bold text-primary pt-4 uppercase text-xs tracking-wider">1. DEFINITIONS AND INTERPRETATION</h3>
+<p>In this Agreement, the following definitions apply: "Deliverables" means all documents, products and materials developed by the Service Provider or its agents, subcontractors, consultants and employees in relation to the Services in any form, including computer programs, data, reports and specifications (including drafts).</p>
+<h3 class="font-bold text-primary pt-4 uppercase text-xs tracking-wider">2. COMMENCEMENT AND DURATION</h3>
+<p>The Services supplied under this Agreement shall be provided by the Service Provider to the Client from the Effective Date. This Agreement shall continue for a fixed term of 24 months unless terminated earlier in accordance with Clause 14.</p>
+<div class="h-24 bg-surface-container-low/30 border-t border-dashed border-outline-variant/30 flex items-center justify-center italic text-on-surface-variant/40 text-xs">
+                            End of Page 1
+                        </div>
+</div>
+</div>
+</div>
+</section>
+<!-- Right Panel: AI Chat Interface -->
+<section class="w-1/2 bg-surface flex flex-col border-l border-outline-variant/10">
+<!-- Chat Feed -->
+<div class="flex-1 overflow-y-auto p-8 space-y-8">
+<div class="flex items-start gap-4">
+<div class="w-10 h-10 rounded-full signature-gradient flex items-center justify-center flex-shrink-0">
+<span class="material-symbols-outlined text-white text-sm" data-icon="smart_toy">smart_toy</span>
+</div>
+<div class="space-y-4">
+<div class="bg-surface-container-lowest border border-outline-variant/20 p-5 rounded-xl rounded-tl-none max-w-lg shadow-sm">
+<p class="text-on-surface leading-relaxed">I've reviewed your document. Here are some things you can ask me:</p>
+</div>
+<!-- Question Chips -->
+<div class="flex flex-col gap-3">
+<button class="flex items-center gap-3 px-4 py-3 bg-surface-container-lowest border border-on-tertiary-container/30 text-on-tertiary-container rounded-xl text-sm font-medium hover:bg-tertiary-fixed-dim/10 transition-colors text-left">
+<span class="material-symbols-outlined text-base">calendar_today</span>
+                                What are the key dates in this document?
+                            </button>
+<button class="flex items-center gap-3 px-4 py-3 bg-surface-container-lowest border border-on-tertiary-container/30 text-on-tertiary-container rounded-xl text-sm font-medium hover:bg-tertiary-fixed-dim/10 transition-colors text-left">
+<span class="material-symbols-outlined text-base">groups</span>
+                                Summarize the main obligations of each party
+                            </button>
+<button class="flex items-center gap-3 px-4 py-3 bg-surface-container-lowest border border-on-tertiary-container/30 text-on-tertiary-container rounded-xl text-sm font-medium hover:bg-tertiary-fixed-dim/10 transition-colors text-left">
+<span class="material-symbols-outlined text-base" data-weight="fill">warning</span>
+                                Flag any high-risk clauses
+                            </button>
+</div>
+</div>
+</div>
+</div>
+<!-- Chat Input Area -->
+<div class="p-8 pt-0">
+<div class="relative group">
+<div class="absolute -inset-0.5 bg-primary/10 rounded-xl blur opacity-0 group-focus-within:opacity-100 transition duration-500"></div>
+<div class="relative flex items-center bg-white border border-primary rounded-xl px-4 py-3 shadow-sm">
+<input class="flex-1 bg-transparent border-none focus:ring-0 text-sm py-2 px-2 text-on-surface placeholder:text-on-surface-variant/50" placeholder="Ask about specific clauses, risks, or definitions..." type="text"/>
+<button class="ml-4 w-10 h-10 flex items-center justify-center rounded-lg bg-primary text-white hover:opacity-90 transition-opacity">
+<span class="material-symbols-outlined">arrow_upward</span>
+</button>
+</div>
+</div>
+<p class="text-[10px] text-center mt-4 text-on-surface-variant label-caps opacity-60">
+                    Draftiro AI can make mistakes. Please verify critical legal findings.
+                </p>
+</div>
+</section>
+</main>
+<!-- Visual Polish: Soft Ambient Shadow at split -->
+<div class="fixed top-0 bottom-0 left-1/2 w-px bg-outline-variant/10 pointer-events-none"></div>
+</body></html>

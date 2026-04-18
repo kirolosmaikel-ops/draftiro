@@ -1,0 +1,237 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>LegalMind | Dashboard</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "apple-gray-bg": "#F5F5F7",
+                        "apple-dark-sidebar": "#1D1D1F",
+                        "apple-active-pill": "#2C2C2E",
+                        "apple-green": "#34C759",
+                        "apple-orange": "#FF9500",
+                        "apple-gray": "#8E8E93",
+                        "apple-blue": "#007AFF",
+                        "border-hairline": "rgba(0,0,0,0.1)",
+                        "primary": "#1D1D1F",
+                        "background": "#FFFFFF",
+                    },
+                    borderRadius: {
+                        "apple-widget": "12px",
+                        "apple-pill": "8px"
+                    },
+                    fontFamily: {
+                        "headline": ["Inter", "-apple-system", "BlinkMacSystemFont", "sans-serif"],
+                        "body": ["Inter", "-apple-system", "BlinkMacSystemFont", "sans-serif"],
+                        "label": ["Inter", "-apple-system", "BlinkMacSystemFont", "sans-serif"]
+                    }
+                },
+            },
+        }
+    </script>
+<style>
+        body { font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif; background-color: #FFFFFF; -webkit-font-smoothing: antialiased; }
+        .hairline-border { border: 0.5px solid rgba(0,0,0,0.1); }
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 300, 'GRAD' 0, 'opsz' 20;
+        }
+        .apple-blur {
+            backdrop-filter: blur(20px);
+            background: rgba(255, 255, 255, 0.8);
+        }
+    </style>
+</head>
+<body class="flex min-h-screen text-[#1D1D1F] overflow-hidden">
+<!-- Left Sidebar: Apple Finder/Notes Style -->
+<aside class="bg-apple-dark-sidebar w-64 flex flex-col py-6 px-3 z-50 shrink-0">
+<div class="flex items-center gap-2 px-3 mb-8">
+<span class="material-symbols-outlined text-white text-2xl" data-icon="balance">balance</span>
+<span class="text-lg font-semibold tracking-tight text-white">LegalMind</span>
+</div>
+<nav class="flex-1 space-y-0.5">
+<a class="flex items-center gap-3 px-3 py-2 text-white bg-apple-active-pill rounded-apple-pill transition-colors" href="#">
+<span class="material-symbols-outlined text-[20px]" data-icon="dashboard">dashboard</span>
+<span class="text-[13px] font-medium">Dashboard</span>
+</a>
+<a class="flex items-center gap-3 px-3 py-2 text-white/60 hover:text-white transition-colors" href="#">
+<span class="material-symbols-outlined text-[20px]" data-icon="folder_open">folder_open</span>
+<span class="text-[13px] font-medium">Cases &amp; Documents</span>
+</a>
+<a class="flex items-center gap-3 px-3 py-2 text-white/60 hover:text-white transition-colors" href="#">
+<span class="material-symbols-outlined text-[20px]" data-icon="book_5">book_5</span>
+<span class="text-[13px] font-medium">Knowledge Base</span>
+</a>
+<a class="flex items-center gap-3 px-3 py-2 text-white/60 hover:text-white transition-colors" href="#">
+<span class="material-symbols-outlined text-[20px]" data-icon="edit_square">edit_square</span>
+<span class="text-[13px] font-medium">Draft Editor</span>
+</a>
+<a class="flex items-center gap-3 px-3 py-2 text-white/60 hover:text-white transition-colors" href="#">
+<span class="material-symbols-outlined text-[20px]" data-icon="smart_toy">smart_toy</span>
+<span class="text-[13px] font-medium">AI Assistant</span>
+</a>
+</nav>
+<div class="mt-auto px-3 py-4 border-t border-white/10">
+<div class="flex items-center gap-3">
+<img alt="Sarah Chen" class="w-8 h-8 rounded-full object-cover" src="https://lh3.googleusercontent.com/aida-public/AB6AXuByBi7lIixmFid3fvPTg1dxVTu6_CHkBxhHOFxAhMw1olb4uDOk36O1qf4umhi-sOu29jsOYdCZ53P_n45Lj3GMI0YwK7WI9FPNnu-FgQ_ivj-aPNYifnjYujzbu9ntLLih0XBSANVbljGBKC2zbxNiKL6t-NoBkSkNokYFAPZ4V-52yOddQcnFmq_Te7eGRck4Oh89BtUG49spTEoBJpqvzvogcy67_f3wnva5kCAwJLov2YkJoVT_6dUE7tKILLBtxmkDNYcha5s"/>
+<div class="flex flex-col">
+<span class="text-[12px] font-medium text-white">Sarah Chen, Esq.</span>
+<span class="text-[10px] text-white/40">Pro Account</span>
+</div>
+</div>
+</div>
+</aside>
+<!-- Main Content Area -->
+<main class="flex-1 flex flex-col h-screen overflow-y-auto bg-white">
+<!-- Header -->
+<header class="flex justify-between items-center h-14 px-8 border-b border-hairline sticky top-0 bg-white/80 backdrop-blur-md z-40">
+<div class="flex items-center gap-6">
+<div class="relative group">
+<span class="material-symbols-outlined absolute left-0 top-1/2 -translate-y-1/2 text-apple-gray text-[18px]" data-icon="search">search</span>
+<input class="w-64 pl-6 pr-4 py-1.5 bg-transparent border-none focus:ring-0 text-[13px] placeholder-apple-gray" placeholder="Search" type="text"/>
+</div>
+</div>
+<div class="flex items-center gap-5">
+<button class="text-apple-gray hover:text-primary"><span class="material-symbols-outlined text-[20px]" data-icon="add_circle">add_circle</span></button>
+<button class="text-apple-gray hover:text-primary"><span class="material-symbols-outlined text-[20px]" data-icon="calendar_today">calendar_today</span></button>
+<button class="text-apple-gray hover:text-primary relative">
+<span class="material-symbols-outlined text-[20px]" data-icon="notifications">notifications</span>
+<span class="absolute top-0 right-0 w-2 h-2 bg-apple-orange rounded-full border-2 border-white"></span>
+</button>
+</div>
+</header>
+<div class="flex flex-1 overflow-hidden">
+<!-- Content Canvas -->
+<div class="flex-1 p-10 overflow-y-auto">
+<header class="mb-10">
+<h1 class="text-[28px] font-semibold tracking-tight text-[#1D1D1F]">Good morning, Sarah.</h1>
+<p class="text-apple-gray text-[14px]">Tuesday, April 15</p>
+</header>
+<!-- Stats Row: Widget Style -->
+<section class="grid grid-cols-3 gap-6 mb-12">
+<div class="bg-apple-gray-bg p-5 rounded-apple-widget">
+<div class="flex items-center gap-2 mb-3">
+<span class="material-symbols-outlined text-apple-blue" data-icon="trending_up">trending_up</span>
+<span class="text-[12px] font-semibold uppercase tracking-wider text-apple-gray">Billable Hours</span>
+</div>
+<div class="flex items-end gap-2">
+<span class="text-3xl font-bold">34.5</span>
+<span class="text-[13px] text-apple-green font-medium mb-1">+12%</span>
+</div>
+</div>
+<div class="bg-apple-gray-bg p-5 rounded-apple-widget">
+<div class="flex items-center gap-2 mb-3">
+<span class="material-symbols-outlined text-apple-blue" data-icon="description">description</span>
+<span class="text-[12px] font-semibold uppercase tracking-wider text-apple-gray">Active Drafts</span>
+</div>
+<div class="flex items-end gap-2">
+<span class="text-3xl font-bold">18</span>
+<span class="text-[13px] text-apple-gray font-medium mb-1">Steady</span>
+</div>
+</div>
+<div class="bg-apple-gray-bg p-5 rounded-apple-widget">
+<div class="flex items-center gap-2 mb-3">
+<span class="material-symbols-outlined text-apple-blue" data-icon="schedule">schedule</span>
+<span class="text-[12px] font-semibold uppercase tracking-wider text-apple-gray">AI Efficiency</span>
+</div>
+<div class="flex items-end gap-2">
+<span class="text-3xl font-bold">92%</span>
+<span class="text-[13px] text-apple-green font-medium mb-1">Optimized</span>
+</div>
+</div>
+</section>
+<!-- Recent Cases -->
+<section>
+<div class="flex justify-between items-center mb-6">
+<h2 class="text-[17px] font-semibold">Recent Cases</h2>
+<button class="text-apple-blue text-[13px] hover:underline">View All</button>
+</div>
+<div class="space-y-3">
+<!-- Case Row 1 -->
+<div class="bg-white hairline-border rounded-xl p-4 flex items-center hover:bg-apple-gray-bg transition-colors cursor-pointer">
+<div class="w-2.5 h-2.5 rounded-full bg-apple-green mr-4"></div>
+<div class="flex-1">
+<h3 class="text-[14px] font-semibold">Chen v. Meridian Corp</h3>
+<p class="text-[12px] text-apple-gray">Corporate Litigation • Updated 2h ago</p>
+</div>
+<div class="flex items-center gap-4 text-apple-gray">
+<span class="text-[12px] font-medium">12 Docs</span>
+<span class="material-symbols-outlined text-[18px]" data-icon="chevron_right">chevron_right</span>
+</div>
+</div>
+<!-- Case Row 2 -->
+<div class="bg-white hairline-border rounded-xl p-4 flex items-center hover:bg-apple-gray-bg transition-colors cursor-pointer">
+<div class="w-2.5 h-2.5 rounded-full bg-apple-orange mr-4"></div>
+<div class="flex-1">
+<h3 class="text-[14px] font-semibold">Estate of Williams</h3>
+<p class="text-[12px] text-apple-gray">Probate • Updated Yesterday</p>
+</div>
+<div class="flex items-center gap-4 text-apple-gray">
+<span class="text-[12px] font-medium">4 Docs</span>
+<span class="material-symbols-outlined text-[18px]" data-icon="chevron_right">chevron_right</span>
+</div>
+</div>
+<!-- Case Row 3 -->
+<div class="bg-white hairline-border rounded-xl p-4 flex items-center hover:bg-apple-gray-bg transition-colors cursor-pointer">
+<div class="w-2.5 h-2.5 rounded-full bg-apple-gray mr-4"></div>
+<div class="flex-1">
+<h3 class="text-[14px] font-semibold">Ramirez Employment Matter</h3>
+<p class="text-[12px] text-apple-gray">Labor Law • Updated 3 days ago</p>
+</div>
+<div class="flex items-center gap-4 text-apple-gray">
+<span class="text-[12px] font-medium">7 Docs</span>
+<span class="material-symbols-outlined text-[18px]" data-icon="chevron_right">chevron_right</span>
+</div>
+</div>
+</div>
+</section>
+</div>
+<!-- Right Activity Panel -->
+<aside class="w-80 bg-apple-gray-bg border-l border-hairline p-8 overflow-y-auto">
+<div class="mb-10">
+<div class="flex items-center gap-2 mb-6">
+<span class="material-symbols-outlined text-apple-blue text-[20px]" data-icon="bolt">bolt</span>
+<h3 class="text-[13px] font-bold uppercase tracking-wider text-apple-gray">AI Activity</h3>
+</div>
+<div class="space-y-8">
+<div class="relative pl-4 border-l-2 border-apple-blue/20">
+<p class="text-[13px] font-semibold mb-1">Summarized deposition</p>
+<p class="text-[12px] text-apple-gray leading-snug">Extracted 14 key points from Chen v. Meridian transcript.</p>
+<p class="text-[10px] text-apple-gray/60 mt-2">09:14 AM</p>
+</div>
+<div class="relative pl-4 border-l-2 border-apple-blue/20">
+<p class="text-[13px] font-semibold mb-1">Drafted extension letter</p>
+<p class="text-[12px] text-apple-gray leading-snug">Generated response for Estate of Williams matter.</p>
+<p class="text-[10px] text-apple-gray/60 mt-2">11:45 AM</p>
+</div>
+<div class="relative pl-4 border-l-2 border-apple-orange/40">
+<p class="text-[13px] font-semibold mb-1 text-apple-orange">Flagged 3 risk clauses</p>
+<p class="text-[12px] text-apple-gray leading-snug">Anomalies detected in M&amp;A contract.</p>
+<p class="text-[10px] text-apple-gray/60 mt-2">01:30 PM</p>
+</div>
+</div>
+</div>
+<div class="pt-8 border-t border-hairline">
+<div class="flex items-center gap-2 mb-6">
+<span class="material-symbols-outlined text-apple-blue text-[20px]" data-icon="calendar_month">calendar_month</span>
+<h3 class="text-[13px] font-bold uppercase tracking-wider text-apple-gray">Next Up</h3>
+</div>
+<div class="bg-white hairline-border rounded-xl p-5">
+<div class="flex flex-col items-center">
+<span class="text-[11px] font-bold text-apple-orange uppercase tracking-tighter mb-1">Wednesday 16</span>
+<p class="text-[14px] font-semibold text-center leading-tight">Court Hearing: Meridian vs State</p>
+<p class="text-[12px] text-apple-gray mt-1">10:00 AM • Courtroom 4B</p>
+</div>
+</div>
+</div>
+</aside>
+</div>
+</main>
+</body></html>

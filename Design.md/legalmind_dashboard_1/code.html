@@ -1,0 +1,347 @@
+<!DOCTYPE html>
+
+<html lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>LegalMind Dashboard | The Academic Counsel</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Newsreader:ital,opsz,wght@0,6..72,200..800;1,6..72,200..800&amp;family=Manrope:wght@200..800&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    "colors": {
+                        "on-surface": "#261816",
+                        "background": "#fff8f7",
+                        "secondary": "#95473e",
+                        "on-tertiary-fixed-variant": "#04429b",
+                        "surface-dim": "#eed4d1",
+                        "surface-container-highest": "#f7ddd9",
+                        "on-primary-fixed-variant": "#8f0f0e",
+                        "surface-bright": "#fff8f7",
+                        "on-primary": "#ffffff",
+                        "tertiary": "#002b6c",
+                        "inverse-primary": "#ffb4aa",
+                        "on-secondary-fixed-variant": "#773029",
+                        "on-tertiary-fixed": "#001945",
+                        "error-container": "#ffdad6",
+                        "primary": "#660003",
+                        "on-primary-fixed": "#410001",
+                        "surface-container": "#ffe9e6",
+                        "tertiary-fixed": "#d9e2ff",
+                        "on-background": "#261816",
+                        "secondary-fixed": "#ffdad5",
+                        "primary-fixed": "#ffdad5",
+                        "primary-container": "#8d0d0d",
+                        "inverse-on-surface": "#ffedea",
+                        "on-tertiary": "#ffffff",
+                        "outline-variant": "#e1bfba",
+                        "tertiary-container": "#004099",
+                        "on-tertiary-container": "#92b1ff",
+                        "primary-fixed-dim": "#ffb4aa",
+                        "on-primary-container": "#ff968a",
+                        "on-error-container": "#93000a",
+                        "tertiary-fixed-dim": "#b0c6ff",
+                        "surface-variant": "#f7ddd9",
+                        "secondary-fixed-dim": "#ffb4aa",
+                        "on-error": "#ffffff",
+                        "on-secondary-container": "#783129",
+                        "on-secondary": "#ffffff",
+                        "inverse-surface": "#3c2d2b",
+                        "surface-container-lowest": "#ffffff",
+                        "outline": "#8d706c",
+                        "error": "#ba1a1a",
+                        "secondary-container": "#fe9c8f",
+                        "surface-container-low": "#fff0ee",
+                        "surface-container-high": "#fde2df",
+                        "surface": "#fff8f7",
+                        "on-secondary-fixed": "#3d0504",
+                        "surface-tint": "#b12b23",
+                        "on-surface-variant": "#59413d"
+                    },
+                    "borderRadius": {
+                        "DEFAULT": "0.125rem",
+                        "lg": "0.25rem",
+                        "xl": "0.5rem",
+                        "full": "0.75rem"
+                    },
+                    "fontFamily": {
+                        "headline": ["Newsreader", "serif"],
+                        "body": ["Manrope", "sans-serif"],
+                        "label": ["Manrope", "sans-serif"]
+                    }
+                },
+            },
+        }
+    </script>
+<style>
+        body { font-family: 'Manrope', sans-serif; }
+        h1, h2, h3, .serif-font { font-family: 'Newsreader', serif; }
+        .material-symbols-outlined { font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24; }
+        .fill-icon { font-variation-settings: 'FILL' 1; }
+    </style>
+</head>
+<body class="bg-background text-on-surface overflow-x-hidden">
+<div class="flex h-screen w-full">
+<!-- Sidebar Navigation (Shared Component Integration) -->
+<aside class="w-[260px] flex-shrink-0 border-r border-outline-variant bg-surface flex flex-col h-full overflow-y-auto">
+<div class="p-6 flex flex-col gap-8 h-full">
+<!-- Branding -->
+<div class="flex items-center gap-3">
+<div class="size-10 bg-primary-container flex items-center justify-center rounded">
+<span class="material-symbols-outlined text-white" style="font-variation-settings: 'FILL' 1;">balance</span>
+</div>
+<div class="flex flex-col">
+<h1 class="text-on-surface text-xl font-bold leading-none">LegalMind</h1>
+<p class="text-on-surface-variant text-xs font-medium uppercase tracking-wider">The Academic Counsel</p>
+</div>
+</div>
+<!-- Navigation -->
+<nav class="flex flex-col gap-1">
+<a class="flex items-center gap-3 px-3 py-2.5 rounded bg-surface-container-highest border-l-4 border-primary text-primary" href="#">
+<span class="material-symbols-outlined fill-icon" style="font-variation-settings: 'FILL' 1;">dashboard</span>
+<span class="text-sm font-semibold">Dashboard</span>
+</a>
+<a class="flex items-center gap-3 px-3 py-2.5 rounded text-on-surface-variant hover:bg-surface-container-low transition-colors" href="#">
+<span class="material-symbols-outlined">description</span>
+<span class="text-sm font-medium">Cases &amp; Documents</span>
+</a>
+<a class="flex items-center gap-3 px-3 py-2.5 rounded text-on-surface-variant hover:bg-surface-container-low transition-colors" href="#">
+<span class="material-symbols-outlined">library_books</span>
+<span class="text-sm font-medium">Knowledge Base</span>
+</a>
+<a class="flex items-center gap-3 px-3 py-2.5 rounded text-on-surface-variant hover:bg-surface-container-low transition-colors" href="#">
+<span class="material-symbols-outlined">edit_note</span>
+<span class="text-sm font-medium">Draft Editor</span>
+</a>
+<a class="flex items-center gap-3 px-3 py-2.5 rounded text-on-surface-variant hover:bg-surface-container-low transition-colors" href="#">
+<span class="material-symbols-outlined">psychology</span>
+<span class="text-sm font-medium">AI Assistant</span>
+</a>
+<a class="flex items-center gap-3 px-3 py-2.5 rounded text-on-surface-variant hover:bg-surface-container-low transition-colors" href="#">
+<span class="material-symbols-outlined">settings</span>
+<span class="text-sm font-medium">Settings</span>
+</a>
+</nav>
+<!-- User Section -->
+<div class="mt-auto pt-6 border-t border-outline-variant flex flex-col gap-4">
+<div class="flex items-center gap-3">
+<div class="size-10 rounded overflow-hidden bg-surface-container-high">
+<img class="w-full h-full object-cover" data-alt="professional portrait of a confident asian woman lawyer in high-end office environment, soft natural lighting, editorial style" src="https://lh3.googleusercontent.com/aida-public/AB6AXuAKG2ODXld-O5ob9irSJQjAIR91xaZPqH7wW38Vv-zKb2azSNCKsOqRnIZbvq9yzXXPKaq9SJ4SVLPF2P4X4cQ7VmfO59IhxXwGCfpSZNczufv9oL9pY27e4LgqfXwXyn8t04oAse96XnuRyrvvKClK7qlm1gcr2Bf13tvOZA5qmQ1mEMFX9gMcvELhY7Xznf_M44EFv6_WbJDogpB4ZGf2MyUtH5TubFosf-_FneSsi5YHWrIZiC0UjKYs_aCS7ik8C5cOkaxMoOQ"/>
+</div>
+<div class="flex flex-col">
+<span class="text-sm font-bold text-on-surface">Sarah Chen, Esq.</span>
+<span class="text-[10px] font-bold uppercase text-primary px-1.5 py-0.5 bg-primary-fixed rounded w-fit">Upgrade</span>
+</div>
+</div>
+</div>
+</div>
+</aside>
+<!-- Main Content -->
+<main class="flex-1 flex flex-col min-w-0 bg-surface-container-low overflow-hidden">
+<!-- Top Bar -->
+<header class="h-16 border-b border-outline-variant bg-surface flex items-center justify-between px-8 flex-shrink-0">
+<div class="flex items-center gap-4">
+<h2 class="text-2xl font-bold text-on-surface">Dashboard</h2>
+</div>
+<div class="flex items-center gap-6 flex-1 max-w-2xl justify-end">
+<div class="relative w-full max-w-md">
+<span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-on-surface-variant text-sm">search</span>
+<input class="w-full bg-surface-container border-none h-10 pl-10 pr-4 rounded text-sm focus:ring-1 focus:ring-primary transition-all placeholder:text-on-surface-variant" placeholder="Search cases, documents, or precedents..." type="text"/>
+</div>
+<div class="flex items-center gap-2 px-4 h-10 rounded bg-surface-container-high border border-outline-variant">
+<span class="material-symbols-outlined text-sm text-on-surface-variant">calendar_today</span>
+<span class="text-sm font-semibold text-on-surface">Tuesday, April 15</span>
+</div>
+</div>
+</header>
+<!-- Dashboard Body -->
+<div class="flex-1 flex overflow-hidden">
+<!-- Primary Column -->
+<section class="flex-1 overflow-y-auto p-8 flex flex-col gap-8">
+<!-- Quick Actions -->
+<div class="flex gap-4">
+<button class="flex-1 bg-primary text-white flex items-center justify-center gap-2 h-12 rounded font-bold hover:bg-primary-container transition-all shadow-sm">
+<span class="material-symbols-outlined">add</span>
+<span>New Case</span>
+</button>
+<button class="flex-1 bg-surface-container-highest border border-outline-variant text-on-surface flex items-center justify-center gap-2 h-12 rounded font-bold hover:bg-surface-variant transition-all">
+<span class="material-symbols-outlined">upload_file</span>
+<span>Upload Document</span>
+</button>
+<button class="flex-1 bg-tertiary-container text-white flex items-center justify-center gap-2 h-12 rounded font-bold hover:opacity-90 transition-all">
+<span class="material-symbols-outlined">edit_square</span>
+<span>Start Draft</span>
+</button>
+</div>
+<!-- Recent Cases Grid -->
+<div class="flex flex-col gap-6">
+<div class="flex items-center justify-between">
+<h3 class="text-2xl font-bold">Recent Cases</h3>
+<button class="text-primary font-bold text-sm hover:underline">View All</button>
+</div>
+<div class="grid grid-cols-1 xl:grid-cols-3 gap-6">
+<!-- Case Card 1 -->
+<div class="bg-surface p-5 rounded border border-outline-variant hover:shadow-lg transition-shadow flex flex-col gap-4">
+<div class="flex justify-between items-start">
+<span class="px-2 py-1 bg-tertiary-container text-white text-[10px] font-bold uppercase rounded">Active</span>
+<div class="flex items-center gap-1 text-on-surface-variant">
+<span class="material-symbols-outlined text-xs">history</span>
+<span class="text-xs">2h ago</span>
+</div>
+</div>
+<div class="flex flex-col gap-1">
+<h4 class="text-xl font-bold leading-tight serif-font">Chen v. Meridian Corp</h4>
+<p class="text-sm text-on-surface-variant">Corporate Litigation</p>
+</div>
+<div class="flex items-center gap-4 mt-2">
+<div class="flex items-center gap-1.5 text-on-surface-variant">
+<span class="material-symbols-outlined text-sm">attachment</span>
+<span class="text-xs font-bold">12 Docs</span>
+</div>
+<div class="flex items-center gap-1.5 text-on-surface-variant">
+<span class="material-symbols-outlined text-sm">group</span>
+<span class="text-xs font-bold">4 Counsel</span>
+</div>
+</div>
+</div>
+<!-- Case Card 2 -->
+<div class="bg-surface p-5 rounded border border-outline-variant hover:shadow-lg transition-shadow flex flex-col gap-4">
+<div class="flex justify-between items-start">
+<span class="px-2 py-1 bg-surface-container-highest text-on-surface-variant text-[10px] font-bold uppercase rounded border border-outline-variant">Pending</span>
+<div class="flex items-center gap-1 text-on-surface-variant">
+<span class="material-symbols-outlined text-xs">history</span>
+<span class="text-xs">Yesterday</span>
+</div>
+</div>
+<div class="flex flex-col gap-1">
+<h4 class="text-xl font-bold leading-tight serif-font">Estate of Williams</h4>
+<p class="text-sm text-on-surface-variant">Probate &amp; Trusts</p>
+</div>
+<div class="flex items-center gap-4 mt-2">
+<div class="flex items-center gap-1.5 text-on-surface-variant">
+<span class="material-symbols-outlined text-sm">attachment</span>
+<span class="text-xs font-bold">4 Docs</span>
+</div>
+<div class="flex items-center gap-1.5 text-on-surface-variant">
+<span class="material-symbols-outlined text-sm">gavel</span>
+<span class="text-xs font-bold">Hearing Scheduled</span>
+</div>
+</div>
+</div>
+<!-- Case Card 3 -->
+<div class="bg-surface p-5 rounded border border-outline-variant hover:shadow-lg transition-shadow flex flex-col gap-4">
+<div class="flex justify-between items-start">
+<span class="px-2 py-1 bg-tertiary-container text-white text-[10px] font-bold uppercase rounded">Active</span>
+<div class="flex items-center gap-1 text-on-surface-variant">
+<span class="material-symbols-outlined text-xs">history</span>
+<span class="text-xs">3 days ago</span>
+</div>
+</div>
+<div class="flex flex-col gap-1">
+<h4 class="text-xl font-bold leading-tight serif-font">Ramirez Employment Matter</h4>
+<p class="text-sm text-on-surface-variant">Labor Dispute</p>
+</div>
+<div class="flex items-center gap-4 mt-2">
+<div class="flex items-center gap-1.5 text-on-surface-variant">
+<span class="material-symbols-outlined text-sm">attachment</span>
+<span class="text-xs font-bold">7 Docs</span>
+</div>
+<div class="flex items-center gap-1.5 text-on-surface-variant">
+<span class="material-symbols-outlined text-sm">flag</span>
+<span class="text-xs font-bold">Urgent Review</span>
+</div>
+</div>
+</div>
+</div>
+</div>
+<!-- Additional Context: Upcoming Deadlines -->
+<div class="flex flex-col gap-6">
+<h3 class="text-2xl font-bold">Calendar &amp; Deadlines</h3>
+<div class="bg-surface border border-outline-variant rounded divide-y divide-outline-variant">
+<div class="p-4 flex items-center justify-between">
+<div class="flex items-center gap-4">
+<div class="flex flex-col items-center justify-center size-12 rounded bg-primary-fixed">
+<span class="text-xs font-bold text-primary uppercase">Apr</span>
+<span class="text-lg font-bold text-primary leading-none">16</span>
+</div>
+<div class="flex flex-col">
+<span class="font-bold text-on-surface">Discovery Deadline - Meridian Corp</span>
+<span class="text-sm text-on-surface-variant">Final submission for document production</span>
+</div>
+</div>
+<button class="p-2 text-on-surface-variant hover:text-primary"><span class="material-symbols-outlined">more_vert</span></button>
+</div>
+<div class="p-4 flex items-center justify-between">
+<div class="flex items-center gap-4">
+<div class="flex flex-col items-center justify-center size-12 rounded bg-surface-container-high">
+<span class="text-xs font-bold text-on-surface-variant uppercase">Apr</span>
+<span class="text-lg font-bold text-on-surface-variant leading-none">18</span>
+</div>
+<div class="flex flex-col">
+<span class="font-bold text-on-surface">Client Consultation - Williams Estate</span>
+<span class="text-sm text-on-surface-variant">Conference Room 4B • 10:00 AM</span>
+</div>
+</div>
+<button class="p-2 text-on-surface-variant hover:text-primary"><span class="material-symbols-outlined">more_vert</span></button>
+</div>
+</div>
+</div>
+</section>
+<!-- Sidebar Activity Column -->
+<aside class="w-[320px] border-l border-outline-variant bg-surface flex flex-col flex-shrink-0 overflow-y-auto">
+<div class="p-6 flex flex-col gap-8">
+<div class="flex flex-col gap-4">
+<div class="flex items-center justify-between">
+<h3 class="text-lg font-bold">AI Activity</h3>
+<span class="material-symbols-outlined text-on-surface-variant">bolt</span>
+</div>
+<div class="flex flex-col gap-3">
+<div class="p-3 rounded bg-surface-container flex flex-col gap-2">
+<div class="flex items-center gap-2 text-primary">
+<span class="material-symbols-outlined text-sm">description</span>
+<span class="text-xs font-bold uppercase tracking-tight">Summary Complete</span>
+</div>
+<p class="text-sm font-medium">Summarized 45-page deposition for <span class="font-bold">Chen v. Meridian</span>.</p>
+<span class="text-[10px] text-on-surface-variant font-medium">15 minutes ago</span>
+</div>
+<div class="p-3 rounded bg-surface-container flex flex-col gap-2">
+<div class="flex items-center gap-2 text-tertiary-container">
+<span class="material-symbols-outlined text-sm">history_edu</span>
+<span class="text-xs font-bold uppercase tracking-tight">Draft Ready</span>
+</div>
+<p class="text-sm font-medium">Drafted extension letter for court filing in <span class="font-bold">Ramirez Matter</span>.</p>
+<span class="text-[10px] text-on-surface-variant font-medium">1 hour ago</span>
+</div>
+<div class="p-3 rounded bg-error-container/30 border border-error/20 flex flex-col gap-2">
+<div class="flex items-center gap-2 text-error">
+<span class="material-symbols-outlined text-sm">warning</span>
+<span class="text-xs font-bold uppercase tracking-tight">Risk Flagged</span>
+</div>
+<p class="text-sm font-medium">Flagged 3 risk clauses in the newly uploaded Operating Agreement.</p>
+<span class="text-[10px] text-on-surface-variant font-medium">2 hours ago</span>
+</div>
+</div>
+</div>
+<div class="flex flex-col gap-4">
+<h3 class="text-lg font-bold">Daily Insight</h3>
+<div class="relative aspect-[4/3] rounded overflow-hidden group">
+<img class="w-full h-full object-cover" data-alt="dramatic wide angle shot of a historic law library with floor to ceiling bookshelves and warm ambient lighting on wooden tables" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBfVFMi7iOsyk30OIHPb4sMM2dAjCsKzTMQCrhvkWbub258b_34outlSNTaXuVjVLwRjYnJDNfYcAC_vYfLpV-f5o_PJuEawzPR5IzgZloCPlMSv_Zq8zq2nF3Ebp6haVxsndHAKPpce_qS3FKV0T6vIDfIAsHOeSpXn_2ljgNH73MYwID_K-L_4IsaA6Q3bU0QPdDKlpJvO8d_dOuQx5wLfsVxeK95oIJUBeQnTX6meN0ITYzaZXW-qD8Me77zb2kv2NKGqD11uJY"/>
+<div class="absolute inset-0 bg-gradient-to-t from-primary/80 to-transparent flex flex-col justify-end p-4">
+<p class="text-white text-sm font-bold serif-font leading-tight italic">"The law is a profession of words; clarity is the ultimate authority."</p>
+</div>
+</div>
+</div>
+<button class="w-full h-10 border border-outline text-on-surface text-sm font-bold rounded flex items-center justify-center gap-2 hover:bg-surface-container-high transition-all">
+<span class="material-symbols-outlined text-sm">history</span>
+<span>Full Activity Log</span>
+</button>
+</div>
+</aside>
+</div>
+</main>
+</div>
+</body></html>

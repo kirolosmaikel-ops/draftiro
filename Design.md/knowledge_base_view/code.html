@@ -1,0 +1,250 @@
+<!DOCTYPE html>
+
+<html lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Knowledge Base | Legal Intelligence</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Newsreader:ital,wght@0,400;0,600;0,700;1,400&amp;family=Manrope:wght@400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">tailwind.config = {darkMode: "class", theme: {extend: {colors: {"surface-container-low": "#fff0ee", "primary-fixed": "#ffdad5", "on-tertiary-fixed-variant": "#04429b", "error-container": "#ffdad6", "secondary-fixed-dim": "#ffb4aa", "on-error": "#ffffff", "surface-dim": "#eed4d1", "on-primary-fixed-variant": "#8f0f0e", "primary-container": "#8d0d0d", surface: "#fff8f7", "on-surface-variant": "#59413d", "on-background": "#261816", "on-primary-fixed": "#410001", "on-tertiary-fixed": "#001945", "tertiary-fixed-dim": "#b0c6ff", outline: "#8d706c", "on-secondary-fixed": "#3d0504", "inverse-on-surface": "#ffedea", tertiary: "#002b6c", "on-surface": "#261816", "on-secondary": "#ffffff", "tertiary-container": "#004099", "surface-variant": "#f7ddd9", "tertiary-fixed": "#d9e2ff", "on-error-container": "#93000a", "surface-bright": "#fff8f7", "on-tertiary-container": "#92b1ff", "inverse-primary": "#ffb4aa", background: "#fff8f7", "surface-container-highest": "#f7ddd9", secondary: "#95473e", "surface-container-lowest": "#ffffff", "on-tertiary": "#ffffff", "surface-container": "#ffe9e6", "on-primary": "#ffffff", "on-secondary-container": "#783129", "surface-tint": "#b12b23", "surface-container-high": "#fde2df", "secondary-container": "#fe9c8f", "secondary-fixed": "#ffdad5", "on-secondary-fixed-variant": "#773029", "outline-variant": "#e1bfba", "on-primary-container": "#ff968a", "primary-fixed-dim": "#ffb4aa", primary: "#660003", "inverse-surface": "#3c2d2b", error: "#ba1a1a"}, borderRadius: {DEFAULT: "0.125rem", lg: "0.25rem", xl: "0.5rem", full: "0.75rem"}, fontFamily: {headline: ["Newsreader"], body: ["Manrope"], label: ["Manrope"], display: "Newsreader"}}}};</script>
+<style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+            vertical-align: middle;
+        }
+        body { font-family: 'Manrope', sans-serif; }
+        h1, h2, h3, .serif { font-family: 'Newsreader', serif; }
+        .glass-panel { background: rgba(255, 255, 255, 0.8); backdrop-filter: blur(20px); }
+    </style>
+</head>
+<body class="bg-surface text-on-surface">
+<!-- SideNavBar (Authority: JSON) -->
+<aside class="h-screen w-64 fixed left-0 top-0 bg-[#1B2A4A] flex flex-col py-8 px-4 font-['Newsreader'] tracking-wide">
+<div class="mb-10 px-4">
+<span class="text-xl font-bold text-white tracking-widest uppercase">Digital Jurist</span>
+<p class="text-xs text-on-primary-container mt-1">Senior Partner</p>
+</div>
+<nav class="flex-grow space-y-2">
+<a class="flex items-center gap-3 px-4 py-3 text-slate-300 hover:text-white hover:bg-white/10 transition-colors" href="#">
+<span class="material-symbols-outlined" data-icon="dashboard">dashboard</span>
+                Dashboard
+            </a>
+<a class="flex items-center gap-3 px-4 py-3 text-[#C9A96E] font-bold border-l-4 border-[#C9A96E] bg-white/5" href="#">
+<span class="material-symbols-outlined" data-icon="menu_book">menu_book</span>
+                Knowledge Base
+            </a>
+<a class="flex items-center gap-3 px-4 py-3 text-slate-300 hover:text-white hover:bg-white/10 transition-colors" href="#">
+<span class="material-symbols-outlined" data-icon="folder_shared">folder_shared</span>
+                Client Files
+            </a>
+<a class="flex items-center gap-3 px-4 py-3 text-slate-300 hover:text-white hover:bg-white/10 transition-colors" href="#">
+<span class="material-symbols-outlined" data-icon="policy">policy</span>
+                Research
+            </a>
+<a class="flex items-center gap-3 px-4 py-3 text-slate-300 hover:text-white hover:bg-white/10 transition-colors" href="#">
+<span class="material-symbols-outlined" data-icon="settings">settings</span>
+                Settings
+            </a>
+</nav>
+<button class="mt-auto mx-4 bg-[#C9A96E] text-[#041534] font-bold py-3 px-4 rounded-lg flex items-center justify-center gap-2 scale-98 active:opacity-80 transition-all">
+<span class="material-symbols-outlined text-sm" data-icon="add">add</span>
+            New Research
+        </button>
+</aside>
+<!-- TopNavBar (Authority: JSON) -->
+<header class="fixed top-0 right-0 w-[calc(100%-16rem)] z-40 bg-[#F9F9F7]/80 backdrop-blur-md border-b border-[#c5c6cf]/20 flex justify-between items-center h-16 px-8">
+<div class="flex items-center gap-6">
+<span class="font-['Newsreader'] text-lg italic text-[#1B2A4A]">Legal Intelligence</span>
+<div class="relative group">
+<span class="absolute inset-y-0 left-3 flex items-center text-on-surface-variant">
+<span class="material-symbols-outlined text-lg" data-icon="search">search</span>
+</span>
+<input class="pl-10 pr-4 py-1.5 bg-surface-container-low border-none rounded-full text-sm w-64 focus:ring-1 focus:ring-[#1B2A4A] transition-all" placeholder="Search precedents..." type="text"/>
+</div>
+</div>
+<nav class="flex items-center gap-8 font-['Manrope'] font-medium text-sm">
+<a class="text-slate-500 hover:text-[#1B2A4A] transition-all" href="#">Precedents</a>
+<a class="text-slate-500 hover:text-[#1B2A4A] transition-all" href="#">Statutes</a>
+<a class="text-slate-500 hover:text-[#1B2A4A] transition-all" href="#">Case Law</a>
+<div class="flex items-center gap-4 ml-4 text-[#1B2A4A]">
+<span class="material-symbols-outlined cursor-pointer hover:text-[#C9A96E]" data-icon="notifications">notifications</span>
+<span class="material-symbols-outlined cursor-pointer hover:text-[#C9A96E]" data-icon="history">history</span>
+<span class="material-symbols-outlined cursor-pointer hover:text-[#C9A96E]" data-icon="account_circle">account_circle</span>
+</div>
+</nav>
+</header>
+<!-- Main Content -->
+<main class="ml-64 pt-16 h-screen flex overflow-hidden">
+<!-- LEFT COLUMN: Client List -->
+<section class="w-[35%] bg-surface border-r border-outline-variant/20 flex flex-col">
+<div class="p-8 pb-4">
+<div class="flex justify-between items-center mb-6">
+<h1 class="text-3xl font-bold text-primary italic">Knowledge Base</h1>
+<button class="bg-primary text-on-primary px-4 py-2 rounded text-xs font-semibold flex items-center gap-2 hover:opacity-90">
+<span class="material-symbols-outlined text-sm" data-icon="add">add</span>
+                        + New Client
+                    </button>
+</div>
+<h2 class="text-sm font-label uppercase tracking-widest text-on-surface-variant mb-4">Clients &amp; Matters</h2>
+<div class="relative mb-6">
+<input class="w-full bg-surface-container-low border-none border-b-2 border-outline-variant/40 focus:border-primary px-4 py-3 text-sm focus:ring-0 transition-all" placeholder="Search clients..." type="text"/>
+</div>
+<div class="flex gap-2 mb-6">
+<button class="px-4 py-1.5 rounded-full bg-secondary-container text-on-secondary-container text-xs font-semibold">All</button>
+<button class="px-4 py-1.5 rounded-full bg-surface-container-highest text-on-surface-variant text-xs font-semibold">Active</button>
+<button class="px-4 py-1.5 rounded-full bg-surface-container-highest text-on-surface-variant text-xs font-semibold">Archived</button>
+</div>
+</div>
+<!-- Scrollable Client List -->
+<div class="flex-grow overflow-y-auto px-4 pb-8 space-y-1">
+<!-- Selected Client -->
+<div class="flex items-center gap-4 p-4 bg-surface-container-lowest border-l-4 border-[#C9A96E] cursor-pointer group transition-all">
+<div class="w-12 h-12 rounded-full bg-[#1B2A4A] flex items-center justify-center text-white font-serif italic text-lg">MC</div>
+<div class="flex-grow">
+<div class="flex justify-between">
+<h3 class="text-lg font-semibold text-primary">Margaret Chen</h3>
+<span class="text-[10px] text-on-surface-variant font-medium">2 days ago</span>
+</div>
+<p class="text-xs text-on-surface-variant">3 matters active</p>
+</div>
+</div>
+<!-- Client 2 -->
+<div class="flex items-center gap-4 p-4 hover:bg-surface-container-low cursor-pointer group transition-all">
+<div class="w-12 h-12 rounded-full bg-[#1B2A4A] flex items-center justify-center text-white font-serif italic text-lg opacity-80 group-hover:opacity-100">TR</div>
+<div class="flex-grow">
+<div class="flex justify-between">
+<h3 class="text-lg font-semibold text-primary">Thomas Ramirez</h3>
+<span class="text-[10px] text-on-surface-variant font-medium">1 week ago</span>
+</div>
+<p class="text-xs text-on-surface-variant">1 matter active</p>
+</div>
+</div>
+<!-- Client 3 -->
+<div class="flex items-center gap-4 p-4 hover:bg-surface-container-low cursor-pointer group transition-all">
+<div class="w-12 h-12 rounded-full bg-[#1B2A4A] flex items-center justify-center text-white font-serif italic text-lg opacity-80 group-hover:opacity-100">EW</div>
+<div class="flex-grow">
+<div class="flex justify-between">
+<h3 class="text-lg font-semibold text-primary">Estate of Williams</h3>
+<span class="text-[10px] text-on-surface-variant font-medium">3 weeks ago</span>
+</div>
+<p class="text-xs text-on-surface-variant">2 matters archived</p>
+</div>
+</div>
+</div>
+</section>
+<!-- RIGHT COLUMN: Matter Detail -->
+<section class="w-[65%] bg-surface flex flex-col relative overflow-hidden">
+<!-- Background Detail Texture -->
+<div class="absolute top-0 right-0 w-full h-full opacity-[0.03] pointer-events-none" data-alt="subtle high-end paper grain texture for editorial background feel" style="background-image: url('https://lh3.googleusercontent.com/aida-public/AB6AXuDFTgc2uM649uYkJICrbWU1cmJ_lBs1WzniQ68pQ-hok2CVmRgAZpj35pw4fwDJQmUZ2yr3aqxRBQOoktnMpNOt91CSg0NTlnGX_fgABlJQ5WFsi2IUz4TZYpxjRRp2ZyDsrM7YsCBBmcPkhNQlAg3Htm_UE56BX-J3_JwrobdoMEU2C8h85Z-OBMt6HbME5GfCAgYBMBBoQMOJpdRb3XNMisgKeuHwCl6-hm9n495bvaWfM3Ar7MHQWumvWt79Na16up2B7rTtAIo');"></div>
+<div class="p-12 pb-0 z-10">
+<div class="flex justify-between items-start mb-8">
+<div>
+<h2 class="text-5xl font-serif font-bold text-primary leading-tight">Margaret Chen</h2>
+<div class="flex items-center gap-4 mt-2 text-on-surface-variant">
+<span class="flex items-center gap-1 text-sm"><span class="material-symbols-outlined text-sm" data-icon="mail">mail</span> m.chen@globalcorp.com</span>
+<span class="flex items-center gap-1 text-sm"><span class="material-symbols-outlined text-sm" data-icon="call">call</span> +1 (555) 012-9844</span>
+</div>
+</div>
+<div class="flex gap-2">
+<button class="p-2 text-primary hover:bg-surface-container-high rounded transition-all">
+<span class="material-symbols-outlined" data-icon="share">share</span>
+</button>
+<button class="p-2 text-primary hover:bg-surface-container-high rounded transition-all">
+<span class="material-symbols-outlined" data-icon="more_vert">more_vert</span>
+</button>
+</div>
+</div>
+<!-- Tabs -->
+<div class="flex gap-8 border-b border-outline-variant/20 mb-8">
+<button class="pb-4 text-primary font-bold border-b-2 border-primary text-sm tracking-wide">Documents</button>
+<button class="pb-4 text-on-surface-variant hover:text-primary font-medium text-sm tracking-wide transition-all">Notes</button>
+<button class="pb-4 text-on-surface-variant hover:text-primary font-medium text-sm tracking-wide transition-all">AI Summary</button>
+<button class="pb-4 text-on-surface-variant hover:text-primary font-medium text-sm tracking-wide transition-all">Timeline</button>
+</div>
+</div>
+<!-- Scrollable Detail Content -->
+<div class="flex-grow overflow-y-auto px-12 pb-12 z-10 space-y-10">
+<!-- File List Section -->
+<div>
+<h3 class="text-sm font-label uppercase tracking-widest text-on-surface-variant mb-4">Latest Documents</h3>
+<div class="space-y-4">
+<!-- File Row 1 -->
+<div class="flex items-center justify-between p-4 bg-surface-container-lowest outline outline-1 outline-outline-variant/20 hover:outline-primary/40 transition-all rounded shadow-sm">
+<div class="flex items-center gap-4">
+<span class="material-symbols-outlined text-error text-3xl" data-icon="picture_as_pdf">picture_as_pdf</span>
+<div>
+<p class="text-sm font-semibold text-primary">Deposition — J. Smith.pdf</p>
+<p class="text-[10px] text-on-surface-variant uppercase tracking-tighter">Uploaded Apr 10 • 2.4 MB</p>
+</div>
+</div>
+<div class="flex items-center gap-2">
+<button class="p-2 text-on-surface-variant hover:text-primary hover:bg-surface-container-low rounded"><span class="material-symbols-outlined text-lg" data-icon="chat_bubble">chat_bubble</span></button>
+<button class="p-2 text-on-surface-variant hover:text-primary hover:bg-surface-container-low rounded"><span class="material-symbols-outlined text-lg" data-icon="download">download</span></button>
+<button class="p-2 text-on-surface-variant hover:text-error hover:bg-error-container/20 rounded"><span class="material-symbols-outlined text-lg" data-icon="delete">delete</span></button>
+</div>
+</div>
+<!-- File Row 2 -->
+<div class="flex items-center justify-between p-4 bg-surface-container-lowest outline outline-1 outline-outline-variant/20 hover:outline-primary/40 transition-all rounded shadow-sm">
+<div class="flex items-center gap-4">
+<span class="material-symbols-outlined text-primary text-3xl" data-icon="description">description</span>
+<div>
+<p class="text-sm font-semibold text-primary">Employment Contract.docx</p>
+<p class="text-[10px] text-on-surface-variant uppercase tracking-tighter">Uploaded Mar 28 • 840 KB</p>
+</div>
+</div>
+<div class="flex items-center gap-2">
+<button class="p-2 text-on-surface-variant hover:text-primary hover:bg-surface-container-low rounded"><span class="material-symbols-outlined text-lg" data-icon="chat_bubble">chat_bubble</span></button>
+<button class="p-2 text-on-surface-variant hover:text-primary hover:bg-surface-container-low rounded"><span class="material-symbols-outlined text-lg" data-icon="download">download</span></button>
+<button class="p-2 text-on-surface-variant hover:text-error hover:bg-error-container/20 rounded"><span class="material-symbols-outlined text-lg" data-icon="delete">delete</span></button>
+</div>
+</div>
+<!-- File Row 3 -->
+<div class="flex items-center justify-between p-4 bg-surface-container-lowest outline outline-1 outline-outline-variant/20 hover:outline-primary/40 transition-all rounded shadow-sm">
+<div class="flex items-center gap-4">
+<span class="material-symbols-outlined text-primary text-3xl" data-icon="description">description</span>
+<div>
+<p class="text-sm font-semibold text-primary">Demand Letter Draft.docx</p>
+<p class="text-[10px] text-on-surface-variant uppercase tracking-tighter">Uploaded Mar 15 • 210 KB</p>
+</div>
+</div>
+<div class="flex items-center gap-2">
+<button class="p-2 text-on-surface-variant hover:text-primary hover:bg-surface-container-low rounded"><span class="material-symbols-outlined text-lg" data-icon="chat_bubble">chat_bubble</span></button>
+<button class="p-2 text-on-surface-variant hover:text-primary hover:bg-surface-container-low rounded"><span class="material-symbols-outlined text-lg" data-icon="download">download</span></button>
+<button class="p-2 text-on-surface-variant hover:text-error hover:bg-error-container/20 rounded"><span class="material-symbols-outlined text-lg" data-icon="delete">delete</span></button>
+</div>
+</div>
+</div>
+</div>
+<!-- AI Case Summary Section -->
+<div class="bg-surface-container-low p-8 border-l-4 border-[#1B2A4A] rounded-r shadow-sm">
+<div class="flex items-center gap-2 mb-6">
+<span class="material-symbols-outlined text-[#C9A96E]" data-icon="auto_awesome" style="font-variation-settings: 'FILL' 1;">auto_awesome</span>
+<h3 class="text-lg font-serif font-bold text-primary italic">AI Case Summary</h3>
+</div>
+<div class="space-y-4 text-sm leading-relaxed text-on-surface-variant">
+<div class="flex gap-4">
+<span class="text-tertiary-fixed-dim mt-1 text-xs">•</span>
+<p>Current litigation hinges on the 2021 non-compete clause validity under the new state labor statutes enacted this quarter.</p>
+</div>
+<div class="flex gap-4">
+<span class="text-tertiary-fixed-dim mt-1 text-xs">•</span>
+<p>Discovery phase reveals three critical inconsistencies in the defendant's deposition regarding the timeline of client solicitation.</p>
+</div>
+<div class="flex gap-4">
+<span class="text-tertiary-fixed-dim mt-1 text-xs">•</span>
+<p>Potential settlement leverage identified in the third-party auditor's report regarding intellectual property valuation.</p>
+</div>
+</div>
+</div>
+<div class="pt-8">
+<button class="w-full border-2 border-dashed border-outline-variant/40 hover:border-[#C9A96E] hover:bg-[#C9A96E]/5 py-6 rounded-lg transition-all flex flex-col items-center gap-2 text-on-surface-variant hover:text-primary group">
+<span class="material-symbols-outlined text-3xl group-hover:scale-110 transition-transform" data-icon="upload_file">upload_file</span>
+<span class="text-sm font-semibold">+ Upload Document</span>
+</button>
+</div>
+</div>
+</section>
+</main>
+</body></html>

@@ -40,11 +40,92 @@ COMPLETED:
 ✅ 9. Supabase local dev config (supabase/config.toml)
 ✅ 10. Git initialized and committed
 
-NEXT STEPS (Session 2):
-- Full dashboard UI (matching legalmind.html dashboard screen)
-- Document chat screen with document viewer + AI chat panel
-- Knowledge base / client management screen
-- Draft editor screen
-- Supabase Storage integration for document uploads
-- Claude/OpenAI API integration for document chunking + chat
-- Vector similarity search for RAG
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+Session 2 — All Pages + API Routes
+====================================
+Date: 2026-04-18
+
+FIXED:
+✅ Build error: renamed next.config.ts → next.config.mjs (Next.js 14.2.5 doesn't support .ts config)
+✅ TypeScript error: typed cookiesToSet in lib/supabase/server.ts and middleware.ts
+✅ useSearchParams() Suspense boundary added to /chat page
+✅ env var name fixed: LlamaParse_API → LLAMAPARSE_API_KEY
+✅ Added createServiceClient() to lib/supabase/server.ts
+
+COMPLETED — PAGES:
+✅ app/(protected)/layout.tsx
+       - Full dark sidebar with Newsreader logo, gold avatar
+       - Nav: Dashboard, Cases & Documents, Cases, Knowledge Base, Draft Editor
+       - Sign out button (client-side)
+       - Onboarding pages bypass sidebar
+✅ app/(protected)/dashboard/page.tsx
+       - Real data from Supabase (cases + document count)
+       - Stats cards (active cases, pending, docs, drafts)
+       - Recent cases list with status dots
+       - Quick actions + right panel
+✅ app/(protected)/cases/page.tsx
+       - Full case list with status filter pills
+       - Inline "New Case" form (firm-scoped insert)
+       - Status badges + "Chat →" links
+✅ app/(protected)/chat/page.tsx
+       - Case selector dropdown (real Supabase data)
+       - Document selector per case
+       - Streaming AI chat with SSE reader
+       - Citation badges inline in messages
+       - Collapsible draft panel (links to editor)
+✅ app/(protected)/knowledge/page.tsx
+       - Client list with search + avatar initials
+       - Document tab: file list with type icons + sizes
+       - Notes tab: freeform textarea
+       - AI Summary tab: calls /api/knowledge/summary
+       - Upload button → /api/documents/upload
+✅ app/(protected)/editor/page.tsx
+       - Left drafts sidebar with "+" new draft
+       - contentEditable rich canvas (Newsreader font)
+       - Auto-save every 2s to /api/editor/save
+       - Export dropdown → .docx and .pdf
+       - Saved/Unsaved indicator
+
+COMPLETED — API ROUTES:
+✅ GET  /api/health                    — status: ok, ts: ISO timestamp
+✅ POST /api/documents/upload          — Supabase Storage upload → LlamaParse parsing
+                                         → OpenAI embedding (text-embedding-3-small, 1536-dim)
+                                         → document_chunks insert in batches of 100
+✅ POST /api/chat/stream               — OpenAI embed question → pgvector similarity search
+                                         → Anthropic Claude 3.5 Sonnet streaming SSE
+                                         → Emit citations after stream ends
+                                         → Persist messages to chat_messages
+✅ GET  /api/chat/query                — Return message history for a session
+✅ POST /api/editor/save               — Upsert draft (create or update by id)
+✅ POST /api/export/docx               — docx package: title + HTML → .docx binary
+✅ POST /api/export/pdf                — HTML document with print styles → .html file
+✅ POST /api/knowledge/summary         — Fetch top 20 chunks for client → Claude Haiku summary
+
+COMPLETED — MIGRATIONS:
+✅ supabase/migrations/003_match_chunks_rpc.sql
+       - match_document_chunks(query_embedding, match_count, filter_document_id, filter_case_id)
+       - SECURITY DEFINER, respects auth_firm_id() RLS
+✅ supabase/migrations/004_drafts.sql
+       - drafts table with firm_id, case_id, title, content, timestamps
+       - RLS: firm-scoped select/insert, owner-only update/delete
+       - updated_at trigger
+
+VERIFIED:
+✅ npm run build — passes, 20 routes, 0 TypeScript errors
+✅ All pages return HTTP 200:
+   / → 200   /login → 200   /dashboard → 200   /chat → 200
+   /cases → 200   /knowledge → 200   /editor → 200
+   /onboarding/step1 → 200   /onboarding/step2 → 200
+✅ GET /api/health → {"status":"ok","ts":"..."}
+
+NEXT STEPS (Session 3):
+- Apply Supabase migrations (run in Supabase dashboard SQL editor or `supabase db push`)
+- Create Supabase Storage bucket named "documents" with auth policy
+- Wire onboarding step1 to real upload (pass auth token to /api/documents/upload)
+- Deploy to Vercel:
+    1. Push to GitHub
+    2. Connect repo in Vercel dashboard
+    3. Set all env vars from .env.local
+    4. vercel --prod
+- Add Vercel environment: NEXT_PUBLIC_APP_URL=https://your-domain.vercel.app
+- Test full end-to-end flow: signup → upload → chat → export

@@ -1,0 +1,240 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>LegalMind | The smartest workspace for the solo attorney</title>
+<!-- Fonts - Using Inter as a close web-safe proxy for SF Pro -->
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&amp;display=swap" rel="stylesheet"/>
+<!-- Icons -->
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script id="tailwind-config">
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            "colors": {
+                "apple-black": "#1D1D1F",
+                "apple-grey": "#6E6E73",
+                "apple-bg": "#F5F5F7",
+                "apple-border": "rgba(0,0,0,0.1)",
+                "background": "#ffffff",
+                "primary": "#1D1D1F",
+                "on-background": "#1D1D1F",
+                "surface": "#ffffff"
+            },
+            "borderRadius": {
+                "apple": "12px",
+                "apple-lg": "20px"
+            },
+            "fontFamily": {
+                "headline": ["Inter", "sans-serif"],
+                "body": ["Inter", "sans-serif"]
+            }
+          },
+        },
+      }
+    </script>
+<style>
+        body {
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+            letter-spacing: -0.011em;
+        }
+        .apple-headline {
+            font-size: 72px;
+            font-weight: 700;
+            line-height: 1.05;
+            letter-spacing: -0.03em;
+        }
+        @media (max-width: 768px) {
+            .apple-headline {
+                font-size: 48px;
+            }
+        }
+        .apple-subheadline {
+            font-size: 21px;
+            line-height: 1.42859;
+            font-weight: 400;
+            color: #6E6E73;
+        }
+        .apple-card {
+            background: #ffffff;
+            border: 0.5px solid rgba(0,0,0,0.15);
+            transition: all 0.3s cubic-bezier(0,0,0.5,1);
+        }
+        .apple-card:hover {
+            border-color: rgba(0,0,0,0.3);
+        }
+        .hairline-border {
+            border: 0.5px solid rgba(0,0,0,0.1);
+        }
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 300, 'GRAD' 0, 'opsz' 24;
+            font-size: 28px;
+        }
+    </style>
+</head>
+<body class="bg-background text-on-background font-body">
+<!-- Navigation -->
+<nav class="fixed top-0 w-full z-50 bg-white/80 backdrop-blur-xl border-b border-apple-border">
+<div class="flex justify-between items-center max-w-[1200px] mx-auto px-6 h-12">
+<div class="flex items-center gap-8">
+<a class="font-semibold text-lg tracking-tight" href="/">LegalMind</a>
+<div class="hidden md:flex items-center gap-6">
+<a class="text-xs text-apple-grey hover:text-apple-black transition-colors" href="#">Platform</a>
+<a class="text-xs text-apple-grey hover:text-apple-black transition-colors" href="#">Precedent</a>
+<a class="text-xs text-apple-grey hover:text-apple-black transition-colors" href="#">Insights</a>
+<a class="text-xs text-apple-grey hover:text-apple-black transition-colors" href="#">Security</a>
+</div>
+</div>
+<div class="flex items-center gap-6">
+<a class="text-xs text-apple-grey hover:text-apple-black transition-colors" href="#">Sign In</a>
+<a class="bg-apple-black text-white px-3 py-1 rounded-full text-[11px] font-medium hover:opacity-90 transition-opacity" href="#">Get Started</a>
+</div>
+</div>
+</nav>
+<main>
+<!-- Hero Section -->
+<section class="pt-32 pb-20 px-6 overflow-hidden">
+<div class="max-w-[1000px] mx-auto text-center">
+<div class="inline-flex items-center gap-2 px-3 py-1 bg-apple-bg rounded-full mb-8">
+<span class="text-[11px] font-semibold text-apple-black">LegalMind 2.0</span>
+<span class="text-[11px] text-apple-grey">Now with enhanced citation engine.</span>
+</div>
+<h1 class="apple-headline text-apple-black mb-6">
+                The smartest workspace for the solo attorney.
+            </h1>
+<p class="apple-subheadline max-w-2xl mx-auto mb-10">
+                Upload case files. Chat with documents. Draft in minutes. Everything a solo practice needs, in one focused place.
+            </p>
+<div class="flex flex-col sm:flex-row items-center justify-center gap-4 mb-20">
+<button class="bg-apple-black text-white px-8 py-4 rounded-apple text-[17px] font-semibold hover:opacity-90 transition-all">
+                    Start Free Trial
+                </button>
+<a class="text-[17px] text-[#0066CC] hover:underline flex items-center gap-1" href="#">
+                    Book a consultation <span class="material-symbols-outlined !text-[17px]">chevron_right</span>
+</a>
+</div>
+<!-- Hero Image Wrapper -->
+<div class="relative max-w-[1200px] mx-auto">
+<div class="rounded-3xl overflow-hidden shadow-[0_20px_50px_rgba(0,0,0,0.1)] hairline-border bg-apple-bg">
+<img alt="Legal Workspace" class="w-full h-auto object-cover" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDEjZG-enYiD_LTz0gTz5D4_uRRnQGYmyGfNh8iXlATgK5asTCBeN_QSd5cPcz3cZrcxZwPsGX6Rn7UGUv0QdjST1TI5mX2vPuQgNRBNHOCul6FuXQqacOEi6U9gm4dM_g8ttbxtUMz7FlujZTRRWOEtLKjy3srOSVHkQws6jX6QNO_HLSo962dBBKMmsX0HoZbnqwgqjlHapDmY_dTE40dqCOzewFDg_R94SaHfmke7L4fjE6CXjcgJCJxulAFW6N7CYU78Lnd0nw"/>
+</div>
+</div>
+</div>
+</section>
+<!-- Bento Features Section -->
+<section class="bg-apple-bg py-32 px-6">
+<div class="max-w-[1200px] mx-auto">
+<div class="mb-20 text-center md:text-left">
+<h2 class="text-4xl md:text-5xl font-bold tracking-tight text-apple-black mb-4">Focus on the law, <br/>not the paperwork.</h2>
+<p class="apple-subheadline max-w-lg">Advanced AI built to understand legal context, not just keywords.</p>
+</div>
+<div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+<!-- Feature Card 1 -->
+<div class="apple-card p-12 rounded-apple-lg flex flex-col items-start h-full">
+<div class="text-apple-black mb-8">
+<span class="material-symbols-outlined">chat_bubble</span>
+</div>
+<h3 class="text-2xl font-bold text-apple-black mb-4">Document Chat</h3>
+<p class="text-[17px] text-apple-grey leading-relaxed">Ask questions of your entire case file. Get answers instantly with exact page citations and clickable highlights.</p>
+</div>
+<!-- Feature Card 2 -->
+<div class="apple-card p-12 rounded-apple-lg flex flex-col items-start h-full">
+<div class="text-apple-black mb-8">
+<span class="material-symbols-outlined">menu_book</span>
+</div>
+<h3 class="text-2xl font-bold text-apple-black mb-4">AI Research</h3>
+<p class="text-[17px] text-apple-grey leading-relaxed">Summarize multi-hundred page opinions into core holdings and prep powerful arguments in minutes, not hours.</p>
+</div>
+<!-- Feature Card 3 -->
+<div class="apple-card p-12 rounded-apple-lg flex flex-col items-start h-full">
+<div class="text-apple-black mb-8">
+<span class="material-symbols-outlined">edit_document</span>
+</div>
+<h3 class="text-2xl font-bold text-apple-black mb-4">Draft Assistant</h3>
+<p class="text-[17px] text-apple-grey leading-relaxed">Generate high-quality first drafts of NDAs, motions, and demand letters based on your firm's specific precedents.</p>
+</div>
+</div>
+</div>
+</section>
+<!-- Proof/Stats Section -->
+<section class="py-32 bg-white px-6">
+<div class="max-w-[1000px] mx-auto">
+<div class="text-center mb-24">
+<p class="text-[24px] md:text-[32px] font-semibold text-apple-black leading-snug">
+                    "LegalMind has effectively added an associate to my solo practice without the overhead. I can prep for depositions in half the time."
+                </p>
+<div class="mt-8 flex flex-col items-center">
+<div class="w-12 h-12 rounded-full bg-apple-bg mb-4 flex items-center justify-center font-bold text-apple-black text-sm">JS</div>
+<p class="text-sm font-bold text-apple-black">Jonathan Sterling, Esq.</p>
+<p class="text-xs text-apple-grey">Sterling Law Group, P.C.</p>
+</div>
+</div>
+<div class="grid grid-cols-1 md:grid-cols-2 gap-12 border-t border-apple-border pt-16">
+<div class="text-center">
+<div class="text-5xl font-bold text-apple-black mb-2">40%</div>
+<p class="text-sm text-apple-grey font-medium uppercase tracking-wider">Reduction in research time</p>
+</div>
+<div class="text-center">
+<div class="text-5xl font-bold text-apple-black mb-2">SOC2</div>
+<p class="text-sm text-apple-grey font-medium uppercase tracking-wider">Type II Certified Security</p>
+</div>
+</div>
+</div>
+</section>
+<!-- CTA Section -->
+<section class="pb-32 px-6">
+<div class="max-w-[1200px] mx-auto bg-apple-bg rounded-[32px] py-24 px-8 text-center">
+<h2 class="text-4xl md:text-5xl font-bold text-apple-black mb-6">Ready to evolve your practice?</h2>
+<p class="apple-subheadline mb-10 max-w-xl mx-auto">Join hundreds of solo attorneys who are reclaiming their time with the industry's most focused AI legal workspace.</p>
+<div class="flex flex-col sm:flex-row justify-center gap-4">
+<button class="bg-apple-black text-white px-10 py-5 rounded-apple text-lg font-semibold hover:opacity-90 transition-all">
+                    Start Your 14-Day Free Trial
+                </button>
+</div>
+<p class="mt-8 text-apple-grey text-xs font-medium uppercase tracking-widest">No credit card required • Secure &amp; Private</p>
+</div>
+</section>
+</main>
+<!-- Footer -->
+<footer class="bg-white border-t border-apple-border pt-20 pb-12 px-6">
+<div class="max-w-[1200px] mx-auto">
+<div class="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-12 mb-20">
+<div class="col-span-2">
+<span class="font-bold text-lg text-apple-black mb-6 block">LegalMind</span>
+<p class="text-apple-grey text-sm max-w-xs leading-relaxed">
+                    Designed for practitioners who value precision and privacy. Built in California.
+                </p>
+</div>
+<div class="flex flex-col gap-3">
+<span class="text-xs font-bold text-apple-black uppercase tracking-wider">Product</span>
+<a class="text-apple-grey hover:text-apple-black text-sm transition-colors" href="#">Features</a>
+<a class="text-apple-grey hover:text-apple-black text-sm transition-colors" href="#">Pricing</a>
+<a class="text-apple-grey hover:text-apple-black text-sm transition-colors" href="#">Security</a>
+</div>
+<div class="flex flex-col gap-3">
+<span class="text-xs font-bold text-apple-black uppercase tracking-wider">Legal</span>
+<a class="text-apple-grey hover:text-apple-black text-sm transition-colors" href="#">Terms</a>
+<a class="text-apple-grey hover:text-apple-black text-sm transition-colors" href="#">Privacy</a>
+</div>
+<div class="flex flex-col gap-3">
+<span class="text-xs font-bold text-apple-black uppercase tracking-wider">Company</span>
+<a class="text-apple-grey hover:text-apple-black text-sm transition-colors" href="#">About</a>
+<a class="text-apple-grey hover:text-apple-black text-sm transition-colors" href="#">Contact</a>
+</div>
+</div>
+<div class="pt-8 border-t border-apple-border flex flex-col md:flex-row justify-between items-center gap-6">
+<p class="text-[11px] text-apple-grey uppercase tracking-widest">
+                © 2024 LegalMind AI. Attorney-Client Privilege Protected.
+            </p>
+<div class="flex items-center gap-4 opacity-40">
+<span class="material-symbols-outlined !text-[20px]">lock</span>
+<span class="material-symbols-outlined !text-[20px]">verified_user</span>
+</div>
+</div>
+</div>
+</footer>
+</body></html>

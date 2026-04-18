@@ -1,0 +1,234 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>LegalMind | Draft Editor</title>
+<!-- Typography: Newsreader (Serif) & Manrope (Sans) -->
+<link href="https://fonts.googleapis.com/css2?family=Newsreader:ital,opsz,wght@0,6..72,200..800;1,6..72,200..800&amp;family=Manrope:wght@200..800&amp;display=swap" rel="stylesheet"/>
+<!-- Material Symbols -->
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script id="tailwind-config">tailwind.config = {darkMode: "class", theme: {extend: {colors: {"on-error-container": "#93000a", background: "#fff8f7", "on-secondary": "#ffffff", "surface-variant": "#f7ddd9", "surface-tint": "#b12b23", "surface-container-low": "#fff0ee", "on-error": "#ffffff", "on-background": "#261816", "on-tertiary-fixed": "#001945", "primary-fixed-dim": "#ffb4aa", "on-tertiary-fixed-variant": "#04429b", "on-tertiary-container": "#92b1ff", "inverse-surface": "#3c2d2b", tertiary: "#002b6c", "secondary-fixed-dim": "#ffb4aa", "surface-bright": "#fff8f7", "secondary-fixed": "#ffdad5", "tertiary-fixed": "#d9e2ff", "surface-container-lowest": "#ffffff", "on-primary": "#ffffff", "on-primary-fixed": "#410001", "on-primary-fixed-variant": "#8f0f0e", "inverse-primary": "#ffb4aa", "surface-container-highest": "#f7ddd9", error: "#ba1a1a", secondary: "#95473e", "tertiary-fixed-dim": "#b0c6ff", "on-tertiary": "#ffffff", "surface-dim": "#eed4d1", "on-surface-variant": "#59413d", "surface-container": "#ffe9e6", "on-surface": "#261816", "outline-variant": "#e1bfba", primary: "#660003", outline: "#8d706c", "surface-container-high": "#fde2df", "tertiary-container": "#004099", "on-secondary-container": "#783129", "on-primary-container": "#ff968a", "error-container": "#ffdad6", "secondary-container": "#fe9c8f", "inverse-on-surface": "#ffedea", "primary-fixed": "#ffdad5", surface: "#fff8f7", "on-secondary-fixed": "#3d0504", "primary-container": "#8d0d0d", "on-secondary-fixed-variant": "#773029"}, borderRadius: {DEFAULT: "0.125rem", lg: "0.25rem", xl: "0.5rem", full: "0.75rem"}, fontFamily: {headline: ["Newsreader"], body: ["Manrope"], label: ["Manrope"], display: "Newsreader"}}}};</script>
+<style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+            vertical-align: middle;
+        }
+        body { font-family: 'Manrope', sans-serif; background-color: #f9f9f7; color: #1a1c1b; }
+        .serif-text { font-family: 'Newsreader', serif; }
+        .label-text { font-family: 'Manrope', sans-serif; text-transform: uppercase; letter-spacing: 0.05em; font-size: 0.75rem; font-weight: 600; }
+        .signature-gradient { background: linear-gradient(135deg, #041534 0%, #1b2a4a 100%); }
+    </style>
+</head>
+<body class="overflow-hidden h-screen flex">
+<!-- Sidebar (SideNavBar) -->
+<aside class="flex flex-col h-screen fixed left-0 top-0 py-6 bg-[#1B2A4A] dark:bg-black text-[#F9F9F7] w-64 z-50">
+<div class="px-6 mb-10">
+<h1 class="text-2xl font-headline text-[#F9F9F7]">LegalMind</h1>
+<p class="text-[10px] label-text opacity-60">The Digital Jurist</p>
+</div>
+<div class="px-3 flex-1">
+<button class="w-full flex items-center justify-center gap-2 py-3 mb-8 bg-white/10 text-white rounded-md transition-all duration-300 hover:bg-white/20">
+<span class="material-symbols-outlined">add</span>
+<span class="font-label text-sm font-semibold">New Draft</span>
+</button>
+<nav class="space-y-1">
+<a class="flex items-center gap-3 text-white/60 hover:text-white px-4 py-3 mb-2 transition-all duration-300" href="#">
+<span class="material-symbols-outlined">dashboard</span>
+<span class="text-sm font-medium">Dashboard</span>
+</a>
+<!-- ACTIVE STATE: Drafting/Draft Editor -->
+<a class="flex items-center gap-3 bg-white/10 text-white rounded-md px-4 py-3 mb-2 scale-[0.98]" href="#">
+<span class="material-symbols-outlined">edit_note</span>
+<span class="text-sm font-medium">Drafting</span>
+</a>
+<a class="flex items-center gap-3 text-white/60 hover:text-white px-4 py-3 mb-2 transition-all duration-300" href="#">
+<span class="material-symbols-outlined">gavel</span>
+<span class="text-sm font-medium">Case Law</span>
+</a>
+<a class="flex items-center gap-3 text-white/60 hover:text-white px-4 py-3 mb-2 transition-all duration-300" href="#">
+<span class="material-symbols-outlined">inventory_2</span>
+<span class="text-sm font-medium">Archives</span>
+</a>
+<a class="flex items-center gap-3 text-white/60 hover:text-white px-4 py-3 mb-2 transition-all duration-300" href="#">
+<span class="material-symbols-outlined">settings</span>
+<span class="text-sm font-medium">Settings</span>
+</a>
+</nav>
+</div>
+<div class="px-3 border-t border-white/10 pt-6">
+<a class="flex items-center gap-3 text-white/60 hover:text-white px-4 py-2 transition-all duration-300" href="#">
+<span class="material-symbols-outlined">help</span>
+<span class="text-xs">Help Center</span>
+</a>
+<a class="flex items-center gap-3 text-white/60 hover:text-white px-4 py-2 transition-all duration-300" href="#">
+<span class="material-symbols-outlined">person</span>
+<span class="text-xs">Account</span>
+</a>
+</div>
+</aside>
+<!-- Main Content Canvas -->
+<main class="ml-64 flex-1 flex flex-col min-h-screen bg-background">
+<!-- TopAppBar (Toolbar) -->
+<header class="flex justify-between items-center w-full px-8 py-4 bg-[#F9F9F7] tonal-transition-no-borders sticky top-0 z-40 border-b border-outline-variant/20">
+<div class="flex items-center gap-6 flex-1">
+<input class="serif-text text-xl font-semibold bg-transparent border-none focus:ring-0 text-primary w-full max-w-xl p-0" placeholder="Untitled Draft" type="text" value="Motion to Extend Discovery Deadline"/>
+</div>
+<div class="flex items-center gap-2">
+<div class="flex items-center gap-1 px-4 py-1.5 bg-surface-container-low rounded-md mr-4">
+<button class="p-1 hover:bg-surface-variant rounded transition-colors" title="Bold"><span class="material-symbols-outlined text-[20px]">format_bold</span></button>
+<button class="p-1 hover:bg-surface-variant rounded transition-colors" title="Italic"><span class="material-symbols-outlined text-[20px]">format_italic</span></button>
+<button class="p-1 hover:bg-surface-variant rounded transition-colors" title="Underline"><span class="material-symbols-outlined text-[20px]">format_underlined</span></button>
+<div class="w-px h-4 bg-outline-variant/40 mx-1"></div>
+<button class="px-2 py-1 hover:bg-surface-variant rounded text-xs font-bold" title="Heading 1">H1</button>
+<button class="px-2 py-1 hover:bg-surface-variant rounded text-xs font-bold" title="Heading 2">H2</button>
+<button class="px-2 py-1 hover:bg-surface-variant rounded text-xs font-bold" title="Heading 3">H3</button>
+<div class="w-px h-4 bg-outline-variant/40 mx-1"></div>
+<button class="p-1 hover:bg-surface-variant rounded transition-colors" title="Bullet List"><span class="material-symbols-outlined text-[20px]">format_list_bulleted</span></button>
+</div>
+<button class="flex items-center gap-2 px-6 py-2 signature-gradient text-white rounded font-medium text-sm transition-opacity hover:opacity-90">
+<span class="material-symbols-outlined text-[18px]">save</span>
+                    Save Draft
+                </button>
+<div class="relative group">
+<button class="flex items-center gap-2 px-4 py-2 bg-surface-container-high text-primary rounded font-medium text-sm">
+                        Export
+                        <span class="material-symbols-outlined text-[18px]">expand_more</span>
+</button>
+<!-- Simple Dropdown Placeholder -->
+<div class="absolute right-0 top-full mt-1 w-40 bg-white shadow-lg rounded border border-outline-variant/20 hidden group-hover:block">
+<button class="w-full text-left px-4 py-2 hover:bg-surface-container-low text-sm flex items-center gap-2">
+<span class="material-symbols-outlined text-[18px]">description</span> PDF Document
+                        </button>
+<button class="w-full text-left px-4 py-2 hover:bg-surface-container-low text-sm flex items-center gap-2">
+<span class="material-symbols-outlined text-[18px]">article</span> Word (Docx)
+                        </button>
+</div>
+</div>
+</div>
+</header>
+<!-- Editor & Assistant Split -->
+<div class="flex-1 flex overflow-hidden">
+<!-- LEFT ZONE: Writing Surface (65%) -->
+<section class="w-[65%] overflow-y-auto bg-[#F4F4F2] p-12 flex justify-center relative">
+<!-- Floating AI Suggestion Cards Container -->
+<div class="absolute left-6 top-24 w-64 space-y-4 z-20 pointer-events-none">
+<div class="pointer-events-auto bg-surface-container-lowest border-l-4 border-tertiary-fixed-dim p-4 rounded shadow-2xl shadow-on-surface/5 animate-fade-in">
+<div class="flex gap-2 items-start mb-2">
+<span class="material-symbols-outlined text-tertiary-fixed-dim text-[20px]" style="font-variation-settings: 'FILL' 1;">auto_awesome</span>
+<p class="text-xs font-semibold label-text text-tertiary-fixed-dim">AI Suggestion</p>
+</div>
+<p class="text-sm text-on-surface-variant leading-relaxed mb-4">Add procedural history paragraph before this section.</p>
+<div class="flex gap-2">
+<button class="px-3 py-1 bg-primary text-white text-[10px] font-bold rounded uppercase tracking-wider">Accept</button>
+<button class="px-3 py-1 bg-surface-container-high text-primary text-[10px] font-bold rounded uppercase tracking-wider">Dismiss</button>
+</div>
+</div>
+<div class="pointer-events-auto bg-surface-container-lowest border-l-4 border-tertiary-fixed-dim p-4 rounded shadow-2xl shadow-on-surface/5">
+<div class="flex gap-2 items-start mb-2">
+<span class="material-symbols-outlined text-tertiary-fixed-dim text-[20px]" style="font-variation-settings: 'FILL' 1;">auto_awesome</span>
+<p class="text-xs font-semibold label-text text-tertiary-fixed-dim">AI Suggestion</p>
+</div>
+<p class="text-sm text-on-surface-variant leading-relaxed mb-4">The statute of limitations argument should cite <span class="italic">Chen v. Hartford (2019)</span>.</p>
+<div class="flex gap-2">
+<button class="px-3 py-1 bg-primary text-white text-[10px] font-bold rounded uppercase tracking-wider">Accept</button>
+<button class="px-3 py-1 bg-surface-container-high text-primary text-[10px] font-bold rounded uppercase tracking-wider">Dismiss</button>
+</div>
+</div>
+</div>
+<!-- The Paper Shell -->
+<div class="w-full max-w-3xl bg-white shadow-sm min-h-[1100px] p-20 serif-text text-[#1A1C1B]">
+<div class="text-center mb-12">
+<p class="uppercase font-bold tracking-[0.2em] mb-1">United States District Court</p>
+<p class="uppercase font-bold tracking-[0.2em]">Northern District of California</p>
+</div>
+<div class="flex justify-between mb-8">
+<div class="space-y-1">
+<p class="font-bold">JOHN DOE,</p>
+<p class="pl-8 italic">Plaintiff,</p>
+<p class="py-4">v.</p>
+<p class="font-bold">TECHCORP INDUSTRIES, INC.,</p>
+<p class="pl-8 italic">Defendant.</p>
+</div>
+<div class="text-right">
+<p>Case No. 3:23-cv-08912-SK</p>
+</div>
+</div>
+<hr class="border-on-surface/10 mb-8"/>
+<h2 class="text-center text-xl font-bold uppercase mb-8 underline underline-offset-8">Plaintiff’s Motion to Extend Discovery Deadline</h2>
+<div class="space-y-6 leading-[1.8] text-[17px]">
+<p><span class="font-bold">TO THE COURT, ALL PARTIES, AND THEIR ATTORNEYS OF RECORD:</span></p>
+<p>Pursuant to Federal Rule of Civil Procedure 6(b)(1)(A), Plaintiff John Doe hereby moves this Court for an order extending the discovery deadline in the above-captioned matter by forty-five (45) days, from November 15, 2023, to December 30, 2023.</p>
+<p>This request is made on the grounds that good cause exists for the extension. Despite the parties' diligent efforts to meet the current schedule, several key depositions remain outstanding due to unforeseen scheduling conflicts among principal witnesses and the recent production of over 10,000 pages of electronic documents by Defendant TechCorp.</p>
+<p class="bg-tertiary-fixed/10 ring-1 ring-tertiary-fixed-dim/20 rounded-sm">The parties have conferred in good faith regarding this request. Defendant TechCorp does not oppose this motion, provided that all subsequent pretrial deadlines are adjusted accordingly to maintain the current trial date in March 2024.</p>
+<p>Plaintiff respectfully requests that the Court find good cause and grant this motion to ensure a complete and fair discovery process.</p>
+</div>
+</div>
+</section>
+<!-- RIGHT PANEL: Drafting Assistant (35%) -->
+<aside class="w-[35%] bg-surface-container-lowest border-l border-outline-variant/10 flex flex-col">
+<div class="p-6 border-b border-outline-variant/10">
+<h3 class="font-headline text-xl text-primary font-bold">Drafting Assistant</h3>
+</div>
+<div class="flex-1 overflow-y-auto p-6 space-y-8">
+<!-- Section: Citation Sources -->
+<div>
+<div class="flex justify-between items-center mb-4">
+<h4 class="label-text text-primary-container">Citation Sources</h4>
+<span class="material-symbols-outlined text-outline text-[18px]">search</span>
+</div>
+<div class="space-y-3">
+<div class="p-4 rounded-lg bg-surface-container-low border-l-2 border-primary-container hover:bg-surface-container transition-colors group">
+<p class="text-sm font-semibold serif-text mb-1">Smith v. Jones, 9th Cir. 2021</p>
+<p class="text-xs text-on-surface-variant mb-3 leading-relaxed">Defining the "good cause" standard for discovery extensions under Rule 6(b).</p>
+<button class="text-[10px] font-bold text-primary flex items-center gap-1 uppercase tracking-widest hover:underline">
+<span class="material-symbols-outlined text-[14px]">add_circle</span> Insert Citation
+                                </button>
+</div>
+<div class="p-4 rounded-lg bg-surface-container-low border-l-2 border-primary-container hover:bg-surface-container transition-colors">
+<p class="text-sm font-semibold serif-text mb-1">FRCP Rule 6(b)</p>
+<p class="text-xs text-on-surface-variant mb-3 leading-relaxed">Statutory basis for extending time for acts done with court permission.</p>
+<button class="text-[10px] font-bold text-primary flex items-center gap-1 uppercase tracking-widest hover:underline">
+<span class="material-symbols-outlined text-[14px]">add_circle</span> Insert Citation
+                                </button>
+</div>
+</div>
+</div>
+<!-- Section: Clause Alternatives -->
+<div>
+<h4 class="label-text text-primary-container mb-4">Clause Alternatives</h4>
+<div class="space-y-3">
+<div class="p-4 rounded-lg border border-outline-variant/20 bg-background/50">
+<p class="text-xs italic text-on-surface-variant mb-3">"This motion is justified by the complex nature of document review..."</p>
+<button class="text-[10px] font-bold text-tertiary-fixed-variant bg-tertiary-fixed/30 px-2 py-1 rounded uppercase tracking-wider">Use This</button>
+</div>
+<div class="p-4 rounded-lg border border-outline-variant/20 bg-background/50">
+<p class="text-xs italic text-on-surface-variant mb-3">"In light of the voluminous electronic discovery produced by Defendant..."</p>
+<button class="text-[10px] font-bold text-tertiary-fixed-variant bg-tertiary-fixed/30 px-2 py-1 rounded uppercase tracking-wider">Use This</button>
+</div>
+</div>
+</div>
+</div>
+<!-- Section: AI Chat Input -->
+<div class="p-6 bg-surface-container-low/50 border-t border-outline-variant/10">
+<div class="relative">
+<textarea class="w-full bg-white border border-outline-variant/30 rounded-lg p-3 text-sm focus:ring-1 focus:ring-primary-container focus:border-primary-container resize-none pr-10" placeholder="Ask the AI to revise, expand, or cite..." rows="3"></textarea>
+<button class="absolute right-3 bottom-3 text-primary-container">
+<span class="material-symbols-outlined">send</span>
+</button>
+</div>
+<div class="mt-3 flex items-center gap-4">
+<span class="text-[10px] label-text opacity-40">Quick Actions:</span>
+<button class="text-[9px] font-bold uppercase tracking-tighter border border-outline-variant/40 rounded px-1.5 py-0.5 hover:bg-white transition-colors">Summarize</button>
+<button class="text-[9px] font-bold uppercase tracking-tighter border border-outline-variant/40 rounded px-1.5 py-0.5 hover:bg-white transition-colors">Check Ethics</button>
+<button class="text-[9px] font-bold uppercase tracking-tighter border border-outline-variant/40 rounded px-1.5 py-0.5 hover:bg-white transition-colors">Shorten</button>
+</div>
+</div>
+</aside>
+</div>
+</main>
+<!-- Visual Polish: Ghost texture background for the editor -->
+<div class="fixed inset-0 pointer-events-none opacity-[0.03]" style="background-image: url('https://lh3.googleusercontent.com/aida-public/AB6AXuBiWOYVLM8bQdXE2l8i0C77X6K6hwmQiCGPOfXqQEexDk1GWt0A2TkHXvDmbdk7A2Y1bbbO8JPLJ6kaVYtsMyST6MGp-a4OhlykBK1InVoASns2-G2PgiGsgY7wl5wK34ST_geuO1tbNv2p5Svfuziw9WgN9QSgwROsEujelUyRcsegzR8LuIIA3NuDGIzPdI97Z37vSR3SxmsxpHOxWGU_URqxIWnXvboi8rE4bWSKEWHkcxO1ErvsFNF5zM0dEP-bYMc812boDB8');"></div>
+</body></html>

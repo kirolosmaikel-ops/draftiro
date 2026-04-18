@@ -1,0 +1,372 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>LegalMind Dashboard | Editorial Authority</title>
+<!-- Google Fonts: Inter as a proxy for SF Pro -->
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;family=Plus+Jakarta+Sans:wght@500;600&amp;display=swap" rel="stylesheet"/>
+<!-- Material Symbols -->
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    "colors": {
+                        "surface-tint": "#7b5800",
+                        "surface-container": "#eeeef0",
+                        "surface-bright": "#f9f9fb",
+                        "on-tertiary": "#ffffff",
+                        "error-container": "#ffdad6",
+                        "tertiary-fixed": "#e4e2e4",
+                        "surface-dim": "#d9dadc",
+                        "secondary-fixed": "#e5e2e1",
+                        "primary-fixed-dim": "#f7bd48",
+                        "on-tertiary-fixed-variant": "#474649",
+                        "surface-container-high": "#e8e8ea",
+                        "tertiary-fixed-dim": "#c8c6c8",
+                        "outline-variant": "#d3c4af",
+                        "surface-variant": "#e2e2e4",
+                        "background": "#f9f9fb",
+                        "on-primary-container": "#fffbff",
+                        "surface-container-low": "#f3f3f5",
+                        "tertiary-container": "#757476",
+                        "on-secondary": "#ffffff",
+                        "surface-container-highest": "#e2e2e4",
+                        "outline": "#817563",
+                        "on-primary": "#ffffff",
+                        "on-tertiary-fixed": "#1b1b1d",
+                        "on-surface-variant": "#4f4535",
+                        "inverse-primary": "#f7bd48",
+                        "error": "#ba1a1a",
+                        "primary-fixed": "#ffdea6",
+                        "secondary": "#5f5e5e",
+                        "on-secondary-fixed-variant": "#474646",
+                        "on-primary-fixed": "#271900",
+                        "secondary-container": "#e5e2e1",
+                        "inverse-surface": "#2f3132",
+                        "on-error": "#ffffff",
+                        "on-error-container": "#93000a",
+                        "on-primary-fixed-variant": "#5d4200",
+                        "on-background": "#1a1c1d",
+                        "surface": "#f9f9fb",
+                        "on-secondary-fixed": "#1c1b1b",
+                        "secondary-fixed-dim": "#c9c6c5",
+                        "primary-container": "#986d00",
+                        "on-tertiary-container": "#fffcfe",
+                        "inverse-on-surface": "#f0f0f2",
+                        "tertiary": "#5c5b5e",
+                        "on-secondary-container": "#656464",
+                        "surface-container-lowest": "#ffffff",
+                        "primary": "#785600",
+                        "on-surface": "#1a1c1d"
+                    },
+                    "borderRadius": {
+                        "DEFAULT": "0.25rem",
+                        "lg": "0.5rem",
+                        "xl": "0.75rem",
+                        "full": "9999px"
+                    },
+                    "fontFamily": {
+                        "headline": ["Inter", "sans-serif"],
+                        "body": ["Inter", "sans-serif"],
+                        "label": ["Plus Jakarta Sans", "sans-serif"]
+                    }
+                },
+            },
+        }
+    </script>
+<style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+            vertical-align: middle;
+        }
+        .hairline-border {
+            border: 0.5px solid rgba(211, 196, 175, 0.3);
+        }
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f9f9fb;
+            color: #1a1c1d;
+        }
+        .editorial-shadow {
+            box-shadow: 0px 10px 30px rgba(26, 28, 29, 0.04);
+        }
+    </style>
+</head>
+<body class="flex min-h-screen">
+<!-- SideNavBar Component -->
+<aside class="h-screen w-64 fixed left-0 top-0 bg-[#1D1D1F] flex flex-col py-8 z-50">
+<div class="px-6 mb-10 flex items-center gap-2">
+<span class="material-symbols-outlined text-[#B8860B]" style="font-variation-settings: 'FILL' 1;">balance</span>
+<span class="text-xl font-bold tracking-tighter text-white">LegalMind</span>
+</div>
+<nav class="flex-1 px-4 space-y-8">
+<div>
+<p class="px-4 text-[11px] font-semibold tracking-widest text-gray-500 mb-4 uppercase">Workspace</p>
+<div class="space-y-1">
+<a class="flex items-center gap-3 bg-[#2C2C2E] text-white rounded-lg py-3 px-4 border-r-2 border-[#B8860B] transition-all duration-300" href="#">
+<span class="material-symbols-outlined text-[20px]">dashboard</span>
+<span class="text-sm font-medium">Dashboard</span>
+</a>
+<a class="flex items-center gap-3 text-gray-400 py-3 px-4 hover:bg-[#2C2C2E] hover:text-white rounded-lg transition-colors duration-200" href="#">
+<span class="material-symbols-outlined text-[20px]">gavel</span>
+<span class="text-sm font-medium">Cases &amp; Documents</span>
+</a>
+<a class="flex items-center gap-3 text-gray-400 py-3 px-4 hover:bg-[#2C2C2E] hover:text-white rounded-lg transition-colors duration-200" href="#">
+<span class="material-symbols-outlined text-[20px]">description</span>
+<span class="text-sm font-medium">Knowledge Base</span>
+</a>
+<a class="flex items-center gap-3 text-gray-400 py-3 px-4 hover:bg-[#2C2C2E] hover:text-white rounded-lg transition-colors duration-200" href="#">
+<span class="material-symbols-outlined text-[20px]">edit_note</span>
+<span class="text-sm font-medium">Draft Editor</span>
+</a>
+</div>
+</div>
+<div>
+<p class="px-4 text-[11px] font-semibold tracking-widest text-gray-500 mb-4 uppercase">Tools</p>
+<div class="space-y-1">
+<a class="flex items-center gap-3 text-gray-400 py-3 px-4 hover:bg-[#2C2C2E] hover:text-white rounded-lg transition-colors duration-200" href="#">
+<span class="material-symbols-outlined text-[20px]">psychology</span>
+<span class="text-sm font-medium">AI Assistant</span>
+</a>
+<a class="flex items-center gap-3 text-gray-400 py-3 px-4 hover:bg-[#2C2C2E] hover:text-white rounded-lg transition-colors duration-200" href="#">
+<span class="material-symbols-outlined text-[20px]">manage_search</span>
+<span class="text-sm font-medium">Research</span>
+</a>
+<a class="flex items-center gap-3 text-gray-400 py-3 px-4 hover:bg-[#2C2C2E] hover:text-white rounded-lg transition-colors duration-200" href="#">
+<span class="material-symbols-outlined text-[20px]">library_books</span>
+<span class="text-sm font-medium">Templates</span>
+</a>
+</div>
+</div>
+</nav>
+<div class="px-6 mt-auto">
+<div class="flex items-center gap-3 py-4 border-t border-white/10">
+<div class="w-10 h-10 rounded-full bg-primary-container flex items-center justify-center text-white font-bold text-xs">SC</div>
+<div>
+<p class="text-sm font-semibold text-white">Sarah Chen, Esq.</p>
+<p class="text-[11px] text-gray-500">Senior Partner</p>
+</div>
+</div>
+</div>
+</aside>
+<!-- TopAppBar Component (Integrated into Main Canvas) -->
+<header class="fixed top-0 right-0 w-[calc(100%-16rem)] h-20 bg-white/70 backdrop-blur-md z-40 px-12 flex justify-between items-center editorial-shadow">
+<div class="flex items-center gap-8">
+<nav class="flex gap-8">
+<a class="text-[#785600] border-b-2 border-[#785600] font-semibold pb-1 tracking-tight" href="#">Active Cases</a>
+<a class="text-[#1D1D1F] opacity-60 hover:opacity-100 transition-opacity pb-1 tracking-tight" href="#">Recent Filings</a>
+<a class="text-[#1D1D1F] opacity-60 hover:opacity-100 transition-opacity pb-1 tracking-tight" href="#">Vault</a>
+</nav>
+</div>
+<div class="flex items-center gap-6">
+<div class="relative">
+<span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-lg">search</span>
+<input class="pl-10 pr-4 py-2 bg-surface-container-low border-none rounded-full text-sm w-64 focus:ring-1 focus:ring-primary" placeholder="Search cases..." type="text"/>
+</div>
+<div class="flex gap-4 text-gray-500">
+<span class="material-symbols-outlined cursor-pointer hover:text-primary">notifications</span>
+<span class="material-symbols-outlined cursor-pointer hover:text-primary">history</span>
+</div>
+<button class="bg-primary text-white px-6 py-2 rounded-lg text-sm font-semibold hover:bg-primary-container transition-colors shadow-sm">
+                Execute Gavel
+            </button>
+</div>
+</header>
+<!-- Main Content Layout -->
+<main class="ml-64 mt-20 flex-1 flex">
+<!-- Dashboard Canvas -->
+<div class="flex-1 px-12 py-10 max-w-5xl">
+<section class="mb-12">
+<h1 class="text-3xl font-bold tracking-tight text-on-background mb-2">Good morning, Sarah.</h1>
+<p class="text-secondary text-sm">Your overview for Thursday, October 24th.</p>
+</section>
+<!-- Metrics Bento Grid -->
+<section class="grid grid-cols-4 gap-6 mb-12">
+<div class="bg-surface-container-low p-6 rounded-xl transition-all hover:scale-[1.02]">
+<div class="flex justify-between items-start mb-4">
+<span class="material-symbols-outlined text-primary" style="font-variation-settings: 'FILL' 1;">folder</span>
+<span class="text-[11px] font-bold text-gray-400 uppercase tracking-widest">Active</span>
+</div>
+<p class="text-4xl font-bold tracking-tighter">14</p>
+<p class="text-sm text-secondary font-medium mt-1">Cases in progress</p>
+</div>
+<div class="bg-surface-container-low p-6 rounded-xl transition-all hover:scale-[1.02]">
+<div class="flex justify-between items-start mb-4">
+<span class="material-symbols-outlined text-error">event</span>
+<span class="text-[11px] font-bold text-gray-400 uppercase tracking-widest">Priority</span>
+</div>
+<p class="text-4xl font-bold tracking-tighter">3</p>
+<p class="text-sm text-secondary font-medium mt-1">Due this week</p>
+</div>
+<div class="bg-surface-container-low p-6 rounded-xl transition-all hover:scale-[1.02]">
+<div class="flex justify-between items-start mb-4">
+<span class="material-symbols-outlined text-primary">description</span>
+<span class="text-[11px] font-bold text-gray-400 uppercase tracking-widest">Storage</span>
+</div>
+<p class="text-4xl font-bold tracking-tighter">47</p>
+<p class="text-sm text-secondary font-medium mt-1">Stored documents</p>
+</div>
+<div class="bg-surface-container-low p-6 rounded-xl transition-all hover:scale-[1.02] border-2 border-primary/10">
+<div class="flex justify-between items-start mb-4">
+<span class="material-symbols-outlined text-primary" style="font-variation-settings: 'FILL' 1;">auto_awesome</span>
+<span class="text-[11px] font-bold text-primary uppercase tracking-widest">AI Power</span>
+</div>
+<p class="text-4xl font-bold tracking-tighter">2</p>
+<p class="text-sm text-secondary font-medium mt-1">Drafts ready</p>
+</div>
+</section>
+<!-- Recent Cases Editorial Layout -->
+<section>
+<div class="flex justify-between items-end mb-8">
+<div>
+<h2 class="text-xl font-bold tracking-tight">Recent Case Files</h2>
+<p class="text-sm text-secondary">Prioritized by recent activity and filing deadlines.</p>
+</div>
+<button class="text-primary text-sm font-semibold hover:underline">View all matters</button>
+</div>
+<div class="grid grid-cols-3 gap-6">
+<!-- Case Card 1 -->
+<div class="bg-surface-container-lowest hairline-border p-6 rounded-xl editorial-shadow hover:bg-surface-container-low transition-colors group">
+<div class="flex justify-between items-start mb-6">
+<span class="w-2 h-2 rounded-full bg-emerald-500"></span>
+<span class="material-symbols-outlined opacity-0 group-hover:opacity-100 transition-opacity text-gray-400">more_horiz</span>
+</div>
+<h3 class="text-lg font-bold tracking-tight mb-1">State v. Henderson</h3>
+<p class="text-sm text-secondary mb-4">Criminal Defense • Litigation</p>
+<div class="flex items-center gap-4 text-xs text-gray-400 font-medium">
+<div class="flex items-center gap-1">
+<span class="material-symbols-outlined text-sm">attach_file</span>
+                                12 Docs
+                            </div>
+<div class="flex items-center gap-1">
+<span class="material-symbols-outlined text-sm">schedule</span>
+                                2h ago
+                            </div>
+</div>
+</div>
+<!-- Case Card 2 -->
+<div class="bg-surface-container-lowest hairline-border p-6 rounded-xl editorial-shadow hover:bg-surface-container-low transition-colors group">
+<div class="flex justify-between items-start mb-6">
+<span class="w-2 h-2 rounded-full bg-orange-400"></span>
+<span class="material-symbols-outlined opacity-0 group-hover:opacity-100 transition-opacity text-gray-400">more_horiz</span>
+</div>
+<h3 class="text-lg font-bold tracking-tight mb-1">Nexus Tech IP Audit</h3>
+<p class="text-sm text-secondary mb-4">Intellectual Property • Corporate</p>
+<div class="flex items-center gap-4 text-xs text-gray-400 font-medium">
+<div class="flex items-center gap-1">
+<span class="material-symbols-outlined text-sm">attach_file</span>
+                                8 Docs
+                            </div>
+<div class="flex items-center gap-1">
+<span class="material-symbols-outlined text-sm">schedule</span>
+                                5h ago
+                            </div>
+</div>
+</div>
+<!-- Case Card 3 -->
+<div class="bg-surface-container-lowest hairline-border p-6 rounded-xl editorial-shadow hover:bg-surface-container-low transition-colors group">
+<div class="flex justify-between items-start mb-6">
+<span class="w-2 h-2 rounded-full bg-gray-300"></span>
+<span class="material-symbols-outlined opacity-0 group-hover:opacity-100 transition-opacity text-gray-400">more_horiz</span>
+</div>
+<h3 class="text-lg font-bold tracking-tight mb-1">Miller Estate Trust</h3>
+<p class="text-sm text-secondary mb-4">Probate • Asset Management</p>
+<div class="flex items-center gap-4 text-xs text-gray-400 font-medium">
+<div class="flex items-center gap-1">
+<span class="material-symbols-outlined text-sm">attach_file</span>
+                                24 Docs
+                            </div>
+<div class="flex items-center gap-1">
+<span class="material-symbols-outlined text-sm">schedule</span>
+                                1d ago
+                            </div>
+</div>
+</div>
+</div>
+</section>
+<!-- Secondary Feature: Knowledge Graph (Asymmetric Layout) -->
+<section class="mt-16 bg-surface-container-low rounded-2xl overflow-hidden flex">
+<div class="p-10 w-1/2">
+<h2 class="text-2xl font-bold tracking-tight mb-4">AI Research Synthesis</h2>
+<p class="text-secondary leading-relaxed mb-8">LegalMind has analyzed 4,200 relevant precedents for the <span class="font-semibold text-on-background">Henderson Matter</span>. The probability of a dismissal motion being granted is currently 68%.</p>
+<button class="flex items-center gap-2 bg-[#1D1D1F] text-white px-6 py-3 rounded-xl font-semibold text-sm hover:bg-[#2C2C2E] transition-colors">
+                        Explore Insights
+                        <span class="material-symbols-outlined text-sm">arrow_forward</span>
+</button>
+</div>
+<div class="w-1/2 relative bg-[#1D1D1F]">
+<img alt="Legal library with warm lighting" class="absolute inset-0 w-full h-full object-cover opacity-60" data-alt="Interior of a luxury modern law library with dark wood shelves and professional warm architectural lighting in a minimal style" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCgZZI668GEDy7ekJSR0c5Ju1Ip-Qnw7SVxsJtE4rzx65jqyq3eNxXKMh01wVuCEBVyUomgIiXRNI3bq71zetWnZbS4HbOONhcG8ycFGE2_UCDSpbG9LX8UBY6vZbzO5m9tvVRm4YlJ-TLaCa7Q3JpSSdosr2vf8MJC4WOGr_x7kP3J8rIUYVhsxly1nBAonoFM3sMdcoNzMAB59gZJAxqiXMbGA5WV7HQdGo9mAgbYrPUCfmSR25w3WG6KexzaGb5NkBVAj8cRdmY"/>
+<div class="absolute inset-0 bg-gradient-to-r from-[#1D1D1F] to-transparent"></div>
+</div>
+</section>
+</div>
+<!-- Right Panel (The "Today" Sidebar) -->
+<aside class="w-[320px] bg-surface-container-low border-l hairline-border px-8 py-10 flex flex-col">
+<h2 class="text-[11px] font-extrabold uppercase tracking-[0.2em] text-gray-400 mb-8">Today</h2>
+<div class="flex-1 space-y-8">
+<!-- Activity Item 1 -->
+<div class="flex gap-4">
+<div class="mt-1 flex flex-col items-center">
+<div class="w-2 h-2 rounded-full bg-primary ring-4 ring-primary/10"></div>
+<div class="w-[1px] h-12 bg-outline-variant/30 mt-2"></div>
+</div>
+<div>
+<p class="text-xs text-gray-400 font-bold mb-1">09:00 AM</p>
+<p class="text-sm font-semibold">Discovery Review</p>
+<p class="text-xs text-secondary mt-1">State v. Henderson</p>
+</div>
+</div>
+<!-- Activity Item 2 -->
+<div class="flex gap-4">
+<div class="mt-1 flex flex-col items-center">
+<div class="w-2 h-2 rounded-full bg-primary ring-4 ring-primary/10"></div>
+<div class="w-[1px] h-12 bg-outline-variant/30 mt-2"></div>
+</div>
+<div>
+<p class="text-xs text-gray-400 font-bold mb-1">11:30 AM</p>
+<p class="text-sm font-semibold">Client Consultation</p>
+<p class="text-xs text-secondary mt-1">Nexus Tech Corp</p>
+</div>
+</div>
+<!-- Activity Item 3 -->
+<div class="flex gap-4">
+<div class="mt-1">
+<div class="w-2 h-2 rounded-full border border-primary"></div>
+</div>
+<div>
+<p class="text-xs text-gray-400 font-bold mb-1">02:00 PM</p>
+<p class="text-sm font-semibold text-secondary">Motion Filing Deadline</p>
+<p class="text-xs text-secondary/60 mt-1">Miller Estate</p>
+</div>
+</div>
+</div>
+<!-- Quick Action Ghost Buttons -->
+<div class="mt-auto pt-8 border-t hairline-border space-y-3">
+<button class="w-full flex items-center justify-between px-4 py-3 bg-white hover:bg-surface-container-highest transition-colors rounded-xl hairline-border group">
+<div class="flex items-center gap-3">
+<span class="material-symbols-outlined text-gray-400 group-hover:text-primary transition-colors">add_box</span>
+<span class="text-sm font-medium">New Document</span>
+</div>
+<span class="text-[10px] text-gray-400 font-mono">⌘N</span>
+</button>
+<button class="w-full flex items-center justify-between px-4 py-3 bg-white hover:bg-surface-container-highest transition-colors rounded-xl hairline-border group">
+<div class="flex items-center gap-3">
+<span class="material-symbols-outlined text-gray-400 group-hover:text-primary transition-colors">calendar_add_on</span>
+<span class="text-sm font-medium">Schedule Event</span>
+</div>
+<span class="text-[10px] text-gray-400 font-mono">⌘S</span>
+</button>
+</div>
+</aside>
+</main>
+<!-- Contextual FAB (Hidden by mandate unless Dashboard-aligned) -->
+<button class="fixed bottom-10 right-10 w-14 h-14 bg-primary text-white rounded-full shadow-2xl flex items-center justify-center hover:scale-110 transition-transform group">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">add</span>
+<span class="absolute right-full mr-4 px-3 py-2 bg-[#1D1D1F] text-white text-xs rounded-lg opacity-0 group-hover:opacity-100 whitespace-nowrap transition-opacity">Quick Create</span>
+</button>
+</body></html>
