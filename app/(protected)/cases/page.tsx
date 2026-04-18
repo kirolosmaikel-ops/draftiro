@@ -22,6 +22,7 @@ export default function CasesPage() {
   const supabase = createClient()
   const [cases, setCases] = useState<Case[]>([])
   const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
   const [showNew, setShowNew] = useState(false)
   const [newTitle, setNewTitle] = useState('')
   const [newArea, setNewArea] = useState('')
@@ -34,11 +35,35 @@ export default function CasesPage() {
 
   async function loadCases() {
     setLoading(true)
-    const { data } = await supabase
-      .from('cases')
-      .select('id,title,case_number,status,practice_area,updated_at,created_at')
-      .order('updated_at', { ascending: false })
-    setCases(data ?? [])
+    setError(null)
+    try {
+      // First make sure the profile/firm exists
+      const { data: { user } } = await supabase.auth.getUser()
+      if (user) {
+        const { data: userRow } = await supabase.from('users').select('firm_id').eq('id', user.id).single()
+        if (!userRow?.firm_id) {
+          // Trigger profile setup then reload
+          await fetch('/api/auth/setup-profile', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+          })
+        }
+      }
+
+      const { data, error: fetchErr } = await supabase
+        .from('cases')
+        .select('id,title,case_number,status,practice_area,updated_at,created_at')
+        .order('updated_at', { ascending: false })
+
+      if (fetchErr) {
+        console.error('[cases] fetch error:', fetchErr.message)
+        setError(`Failed to load cases: ${fetchErr.message}`)
+      } else {
+        setCases(data ?? [])
+      }
+    } catch (e) {
+      setError(`Unexpected error: ${e}`)
+    }
     setLoading(false)
   }
 
@@ -161,7 +186,22 @@ export default function CasesPage() {
         )}
 
         {loading ? (
-          <div style={{ color: '#9A9A96', fontSize: '13.5px', padding: '40px 0', textAlign: 'center' }}>Loading…</div>
+          <div style={{ color: '#9A9A96', fontSize: '13.5px', padding: '40px 0', textAlign: 'center' }}>
+            <div style={{ marginBottom: '8px' }}>⏳ Loading cases…</div>
+          </div>
+        ) : error ? (
+          <div style={{
+            background: '#FFE8E6', border: '1px solid #FFBDBA', borderRadius: '14px',
+            padding: '20px 24px', color: '#A0281A', fontSize: '13.5px',
+          }}>
+            <strong>Error loading cases:</strong> {error}
+            <button
+              onClick={() => loadCases()}
+              style={{ marginLeft: '16px', color: '#A0281A', fontWeight: 600, background: 'none', border: 'none', cursor: 'pointer', textDecoration: 'underline', fontFamily: 'Manrope, sans-serif' }}
+            >
+              Retry
+            </button>
+          </div>
         ) : filtered.length === 0 ? (
           <div style={{
             background: '#fff', border: '1px solid rgba(0,0,0,0.07)', borderRadius: '14px',

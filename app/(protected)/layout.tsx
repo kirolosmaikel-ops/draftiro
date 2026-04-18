@@ -52,6 +52,15 @@ const NAV = [
       </svg>
     ),
   },
+  {
+    href: '/debug',
+    label: 'Debug',
+    icon: (
+      <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" width="16" height="16">
+        <circle cx="8" cy="8" r="6" /><path d="M8 5v4M8 11v.5" />
+      </svg>
+    ),
+  },
 ]
 
 export default function ProtectedLayout({ children }: { children: React.ReactNode }) {

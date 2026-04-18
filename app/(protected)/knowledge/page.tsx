@@ -39,13 +39,37 @@ export default function KnowledgePage() {
   const [tab, setTab] = useState<'documents' | 'notes' | 'summary'>('documents')
   const [clientSearch, setClientSearch] = useState('')
   const [uploading, setUploading] = useState(false)
+  const [loadError, setLoadError] = useState<string | null>(null)
 
   useEffect(() => {
-    supabase.from('clients').select('id,name,email,phone,created_at').order('name')
-      .then(({ data }) => {
-        setClients(data ?? [])
-        if (data?.length) setSelectedClient(data[0])
-      })
+    async function loadClients() {
+      setLoadError(null)
+      try {
+        // Ensure profile/firm exists first
+        const { data: { user } } = await supabase.auth.getUser()
+        if (user) {
+          const { data: userRow } = await supabase.from('users').select('firm_id').eq('id', user.id).single()
+          if (!userRow?.firm_id) {
+            await fetch('/api/auth/setup-profile', { method: 'POST', headers: { 'Content-Type': 'application/json' } })
+          }
+        }
+
+        const { data, error: fetchErr } = await supabase
+          .from('clients')
+          .select('id,name,email,phone,created_at')
+          .order('name')
+
+        if (fetchErr) {
+          setLoadError(`Failed to load clients: ${fetchErr.message}`)
+        } else {
+          setClients(data ?? [])
+          if (data?.length) setSelectedClient(data[0])
+        }
+      } catch (e) {
+        setLoadError(`Unexpected error: ${e}`)
+      }
+    }
+    loadClients()
   }, [])
 
   useEffect(() => {
@@ -135,7 +159,11 @@ export default function KnowledgePage() {
             />
           </div>
           <div style={{ flex: 1, overflowY: 'auto' }}>
-            {filtered.length === 0 ? (
+            {loadError ? (
+              <div style={{ padding: '16px', color: '#A0281A', fontSize: '12px', background: '#FFE8E6', margin: '8px', borderRadius: '8px' }}>
+                {loadError}
+              </div>
+            ) : filtered.length === 0 ? (
               <div style={{ padding: '24px', textAlign: 'center', color: '#9A9A96', fontSize: '12.5px' }}>No clients yet</div>
             ) : filtered.map((c, i) => (
               <div
