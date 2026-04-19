@@ -33,6 +33,7 @@ export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl
 
   const isPublicRoute =
+    pathname === '/' ||
     pathname.startsWith('/login') ||
     pathname.startsWith('/signup') ||
     pathname.startsWith('/forgot-password') ||
@@ -48,7 +49,7 @@ export async function middleware(request: NextRequest) {
     return NextResponse.redirect(url)
   }
 
-  // Redirect authenticated users away from login
+  // Redirect authenticated users away from login (but not from landing page /)
   if (user && pathname === '/login') {
     const next = request.nextUrl.searchParams.get('next') ?? '/dashboard'
     const url = request.nextUrl.clone()
