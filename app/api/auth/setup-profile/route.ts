@@ -155,14 +155,56 @@ export async function POST(req: Request) {
   return NextResponse.json({ ok: true, firmId, created: true })
 }
 
-/** GET /api/auth/setup-profile — used by middleware redirect */
+/** GET /api/auth/setup-profile?redirect=/dashboard
+ *  Runs the full profile setup using the cookie session, then redirects.
+ *  Used by middleware and email-confirmed sign-ups. */
 export async function GET(req: Request) {
-  // After setup, redirect to dashboard
   const url = new URL(req.url)
-  const next = url.searchParams.get('next') ?? '/dashboard'
+  const next = url.searchParams.get('redirect') ?? url.searchParams.get('next') ?? '/dashboard'
 
-  // We still need to run setup; call POST logic via fetch to self is awkward,
-  // so just redirect — the middleware will detect the missing profile on next
-  // page load and try again. The POST variant is the authoritative path.
+  const supabase = createClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.SUPABASE_SERVICE_ROLE_KEY!
+  )
+
+  // Try to resolve via cookie session (server-side)
+  let userId: string | null = null
+  let userEmail: string | null = null
+
+  // Read the sb-access-token cookie manually if present
+  const cookieHeader = req.headers.get('cookie') ?? ''
+  const tokenMatch = cookieHeader.match(/sb-[^=]+-auth-token=([^;]+)/)
+  if (tokenMatch) {
+    try {
+      const decoded = decodeURIComponent(tokenMatch[1])
+      const parsed = JSON.parse(decoded)
+      const token = Array.isArray(parsed) ? parsed[0] : parsed?.access_token
+      if (token) {
+        const { data: { user } } = await supabase.auth.getUser(token)
+        if (user) { userId = user.id; userEmail = user.email ?? null }
+      }
+    } catch { /* ignore parse errors */ }
+  }
+
+  if (userId && userEmail) {
+    // Run minimal upsert inline so the GET is self-contained
+    const firmSlug = `firm-${userId.slice(0, 8)}`
+    let firmId: string | null = null
+    const { data: existingUser } = await supabase.from('users').select('id,firm_id').eq('id', userId).single()
+    if (existingUser?.firm_id) {
+      firmId = existingUser.firm_id
+    } else {
+      const { data: fData } = await supabase.from('firms')
+        .upsert({ name: `${userEmail.split('@')[0]}'s Firm`, slug: firmSlug, plan: 'trial' }, { onConflict: 'slug', ignoreDuplicates: false })
+        .select('id').single()
+      const { data: fExisting } = fData ? { data: fData } : await supabase.from('firms').select('id').eq('slug', firmSlug).single()
+      if (fExisting) {
+        firmId = fExisting.id
+        await supabase.from('users').upsert({ id: userId, email: userEmail, firm_id: firmId, role: 'owner' }, { onConflict: 'id' })
+      }
+    }
+    console.log('[setup-profile GET] ✓ ensured profile, firm_id:', firmId)
+  }
+
   return NextResponse.redirect(new URL(next, url.origin))
 }

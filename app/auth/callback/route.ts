@@ -4,7 +4,9 @@ import { NextResponse } from 'next/server'
 export async function GET(request: Request) {
   const { searchParams, origin } = new URL(request.url)
   const code = searchParams.get('code')
-  const next = searchParams.get('next') ?? '/dashboard'
+  // Always land on /dashboard after auth — never / (which is the public landing page)
+  const next = '/dashboard'
+  void searchParams.get('next') // intentionally ignored
 
   console.log('[auth/callback] ▶ code present:', !!code)
 
