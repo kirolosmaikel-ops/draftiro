@@ -102,6 +102,28 @@ export async function POST(req: Request) {
     }
   }
 
+  // ── 2b. Guard: document selected but zero chunks found ───────────────────
+  if (documentId && chunks.length === 0) {
+    const encoder0 = new TextEncoder()
+    const zeroStream = new ReadableStream({
+      start(controller) {
+        controller.enqueue(encoder0.encode(
+          `data: ${JSON.stringify({ type: 'text', content: "This document hasn't been indexed yet. Please wait for processing to complete, then try again." })}\n\n`
+        ))
+        controller.enqueue(encoder0.encode('data: [DONE]\n\n'))
+        controller.close()
+      },
+    })
+    return new Response(zeroStream, {
+      headers: {
+        'Content-Type': 'text/event-stream',
+        'Cache-Control': 'no-cache, no-transform',
+        'X-Accel-Buffering': 'no',
+        'Connection': 'keep-alive',
+      },
+    })
+  }
+
   // ── 3. Build system prompt ───────────────────────────────────────────────
   const contextBlock = chunks.length > 0
     ? chunks.map((c, i) => `[Source ${i + 1} — Page ${c.page_number}]\n${c.content}`).join('\n\n---\n\n')

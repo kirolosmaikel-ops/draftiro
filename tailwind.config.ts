@@ -10,7 +10,7 @@ const config: Config = {
     extend: {
       fontFamily: {
         headline: ['Newsreader', 'Georgia', 'serif'],
-        body: ['Manrope', 'system-ui', 'sans-serif'],
+        body: ['DM Sans', 'system-ui', 'sans-serif'],
         mono: ['DM Mono', 'monospace'],
       },
       colors: {

@@ -252,11 +252,11 @@ export async function POST(req: Request) {
           throw new Error(`All parsers failed for ${file.name}: ${pdfErr}`)
         }
       } else if (filename2.endsWith('.docx')) {
-        // DOCX: read raw text between XML tags (very basic — no images)
-        const text = new TextDecoder('utf-8', { fatal: false }).decode(fileBytes)
-        fullText = text.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim()
-        parseMethod = 'docx-raw'
-        console.log('[upload] ✓ docx raw extraction, chars:', fullText.length)
+        const mammoth = await import('mammoth')
+        const result = await mammoth.extractRawText({ buffer: Buffer.from(fileBytes) })
+        fullText = result.value ?? ''
+        parseMethod = 'mammoth'
+        console.log('[upload] ✓ mammoth done, chars:', fullText.length)
       } else {
         // Unknown type — try reading as text
         fullText = new TextDecoder('utf-8', { fatal: false }).decode(fileBytes)
