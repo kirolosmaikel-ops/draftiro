@@ -118,14 +118,92 @@ VERIFIED:
    /onboarding/step1 → 200   /onboarding/step2 → 200
 ✅ GET /api/health → {"status":"ok","ts":"..."}
 
-NEXT STEPS (Session 3):
-- Apply Supabase migrations (run in Supabase dashboard SQL editor or `supabase db push`)
-- Create Supabase Storage bucket named "documents" with auth policy
-- Wire onboarding step1 to real upload (pass auth token to /api/documents/upload)
-- Deploy to Vercel:
-    1. Push to GitHub
-    2. Connect repo in Vercel dashboard
-    3. Set all env vars from .env.local
-    4. vercel --prod
-- Add Vercel environment: NEXT_PUBLIC_APP_URL=https://your-domain.vercel.app
-- Test full end-to-end flow: signup → upload → chat → export
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+Session 3 — Production Fix (API Routes + Profile Setup)
+========================================================
+Date: 2026-04-19
+
+FIXED — ROOT CAUSE: No profile setup after sign-in → firm_id NULL → all RLS blocks
+✅ app/api/auth/setup-profile/route.ts — Idempotent firm+user row creation
+✅ app/auth/callback/route.ts — Calls setup-profile after PKCE exchange
+✅ middleware.ts — Checks firm_id on every page load, fires setup-profile if missing
+✅ app/api/chat/stream/route.ts — Removed edge runtime (requires Node.js), maxDuration=60, logging
+✅ app/api/documents/upload/route.ts — Cookie auth, pdf-parse fallback, 25s LlamaParse timeout
+✅ app/api/editor/save/route.ts — firm_id guard with setup-profile fallback
+✅ app/(protected)/cases/page.tsx — Error state + firm_id guard
+✅ app/(protected)/knowledge/page.tsx — Error state + firm_id guard
+✅ app/api/health/route.ts — Supabase connectivity + all API key checks
+✅ app/(protected)/debug/page.tsx — System diagnostics panel
+✅ npm run build — passes, 22 routes, 0 TypeScript errors
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+Session 4 — Full UI Rebuild + Feature Fixes
+============================================
+Date: 2026-04-19
+
+DESIGN SYSTEM UPDATES:
+✅ Font changed: Manrope → DM Sans (body), DM Mono (code)
+✅ Color tokens updated: --ink #0F0F0E (was #1D1D1F), all legalmind.html tokens
+✅ globals.css: animations (fadeIn, fadeDown, slideInRight, bounce, blink, spin)
+✅ tailwind.config.ts: updated font family
+
+PAGES REBUILT (matching legalmind.html exactly):
+✅ app/(protected)/layout.tsx
+       - Dark sidebar with "D" gold logo mark + "Draftiro" Newsreader brand
+       - Workspace + Tools section labels
+       - NavItem with hover/active transitions
+       - User block: initials avatar, email username, "Solo Practice" role
+       - Sign out button
+✅ app/(protected)/dashboard/page.tsx
+       - "Good morning, {name}." greeting (Newsreader 26px)
+       - 4-stat cards with staggered fadeIn, real Supabase data
+       - Case list with hover lift + shadow transitions
+       - Right panel: AI activity timeline + Quick Actions
+✅ app/(protected)/cases/page.tsx
+       - Filter pills, case rows with hover
+       - New Case modal (title, practice area, client dropdown)
+       - New Client modal (name, email, phone, company, notes)
+       - Both modals INSERT into Supabase with firm_id
+✅ app/(protected)/chat/page.tsx
+       - Full legalmind.html document_chat_view recreation
+       - Case + Document Apple-style dropdowns (fadeDown animation)
+       - Doc panel (52%): white page, page nav, highlight example
+       - Chat panel: AI/user bubbles, citation chips, typing dots, scroll
+       - Draft panel slides in (0→340px): citations, clause alternatives
+       - Document status polling every 3s via /api/documents/status/[id]
+✅ app/(protected)/knowledge/page.tsx
+       - Client list with search + filter chips + initials avatars
+       - New Client modal + New Matter modal
+       - Documents/Notes/AI Summary/Timeline tabs
+       - File rows with chat/download action buttons
+✅ app/(protected)/editor/page.tsx
+       - 46px toolbar: B/I/U/H1/H2, save status, AI Panel toggle, export dropdown
+       - contentEditable Newsreader canvas (white page, 680px max, shadow)
+       - AI suggestion card with Accept/Dismiss
+       - Right panel: citations + clause alternatives
+       - 2s debounce auto-save
+✅ app/(protected)/onboarding/step1/page.tsx
+       - Centered card (560px, 20px radius, shadow)
+       - Progress bar (3px, 50%)
+       - Dropzone with drag-over state
+       - Sample file chips
+       - Full-width primary button
+
+API ROUTES FIXED/ADDED:
+✅ app/api/documents/status/[id]/route.ts — NEW: polling endpoint for upload status
+✅ app/api/documents/upload/route.ts — mammoth for DOCX (replaces raw XML strip)
+✅ app/api/chat/stream/route.ts — zero-chunks guard with clear error message
+
+DEPENDENCIES ADDED:
+✅ mammoth — DOCX text extraction
+
+VERIFIED:
+✅ npm run build — 22 routes, 0 TypeScript errors
+✅ Commit: "feat: full UI rebuild and fix all features"
+
+NEXT STEPS:
+- Push to GitHub: git remote add origin <repo-url> && git push -u origin master
+- Vercel will auto-redeploy
+- Test: /debug page to verify env vars + Supabase connectivity
+- Run SQL migrations in Supabase dashboard if not already done
+- Create "documents" storage bucket in Supabase with public policy
