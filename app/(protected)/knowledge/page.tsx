@@ -698,8 +698,8 @@ export default function KnowledgePage() {
                               {d.size_bytes ? ` · ${fileSize(d.size_bytes)}` : ''}
                               {` · `}
                               <span style={{
-                                color: d.status === 'ready' ? '#1A7A4A' : '#9A9A96',
-                                fontWeight: d.status === 'ready' ? 600 : 400,
+                                color: d.status === 'indexed' ? '#1A7A4A' : d.status === 'error' ? '#A0281A' : '#9A9A96',
+                                fontWeight: d.status === 'indexed' ? 600 : 400,
                               }}>
                                 {d.status}
                               </span>

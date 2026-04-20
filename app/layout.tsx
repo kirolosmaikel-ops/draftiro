@@ -2,7 +2,7 @@ import type { Metadata } from 'next'
 import './globals.css'
 
 export const metadata: Metadata = {
-  title: 'LegalMind — AI Legal Workspace',
+  title: 'Draftiro — AI Legal Workspace',
   description: 'The smartest workspace for the solo attorney.',
 }
 

@@ -214,13 +214,13 @@ export default function DebugPage() {
                     const json = await res.json()
                     alert(JSON.stringify(json, null, 2))
                   }}
-                  style={{ height: '34px', background: '#1D1D1F', color: '#fff', border: 'none', borderRadius: '8px', padding: '0 16px', fontSize: '12.5px', fontWeight: 600, cursor: 'pointer', fontFamily: 'Manrope, sans-serif' }}
+                  style={{ height: '34px', background: '#1D1D1F', color: '#fff', border: 'none', borderRadius: '8px', padding: '0 16px', fontSize: '12.5px', fontWeight: 600, cursor: 'pointer', fontFamily: 'DM Sans, sans-serif' }}
                 >
                   Run Setup Profile
                 </button>
                 <button
                   onClick={() => window.location.reload()}
-                  style={{ height: '34px', background: 'none', border: '1px solid rgba(0,0,0,0.1)', borderRadius: '8px', padding: '0 16px', fontSize: '12.5px', fontWeight: 500, cursor: 'pointer', color: '#3A3A38', fontFamily: 'Manrope, sans-serif' }}
+                  style={{ height: '34px', background: 'none', border: '1px solid rgba(0,0,0,0.1)', borderRadius: '8px', padding: '0 16px', fontSize: '12.5px', fontWeight: 500, cursor: 'pointer', color: '#3A3A38', fontFamily: 'DM Sans, sans-serif' }}
                 >
                   Refresh
                 </button>

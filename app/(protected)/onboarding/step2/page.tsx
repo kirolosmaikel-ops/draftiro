@@ -62,7 +62,7 @@ export default function OnboardingStep2() {
                   onChange={e => setMessage(e.target.value)}
                   placeholder="e.g. What are the key obligations in this contract?"
                   rows={2}
-                  style={{ flex: 1, border: 'none', background: 'none', outline: 'none', fontSize: '13.5px', fontFamily: 'Manrope, sans-serif', color: '#1D1D1F', resize: 'none' }}
+                  style={{ flex: 1, border: 'none', background: 'none', outline: 'none', fontSize: '13.5px', fontFamily: 'DM Sans, sans-serif', color: '#1D1D1F', resize: 'none' }}
                 />
                 <button
                   onClick={() => { if (message.trim()) setSent(true) }}
@@ -76,7 +76,7 @@ export default function OnboardingStep2() {
             <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '10px' }}>
               <button
                 onClick={() => router.push('/dashboard')}
-                style={{ width: '100%', height: '48px', background: '#1D1D1F', color: '#fff', border: 'none', borderRadius: '14px', fontSize: '15px', fontWeight: 600, fontFamily: 'Manrope, sans-serif', cursor: 'pointer' }}
+                style={{ width: '100%', height: '48px', background: '#1D1D1F', color: '#fff', border: 'none', borderRadius: '14px', fontSize: '15px', fontWeight: 600, fontFamily: 'DM Sans, sans-serif', cursor: 'pointer' }}
               >
                 Go to Dashboard →
               </button>

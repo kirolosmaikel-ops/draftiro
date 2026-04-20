@@ -501,7 +501,6 @@ export default function EditorPage() {
                   contentEditable
                   suppressContentEditableWarning
                   onInput={e => handleContentChange((e.target as HTMLDivElement).innerHTML)}
-                  dangerouslySetInnerHTML={{ __html: content || SAMPLE_CONTENT }}
                   style={{
                     fontFamily: "'Newsreader', serif",
                     fontSize: '14px',

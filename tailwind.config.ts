@@ -20,7 +20,7 @@ const config: Config = {
         'surface-2': '#F7F6F3',
         'surface-3': '#EFEDE8',
         'surface-4': '#E4E2DC',
-        ink: '#1D1D1F',
+        ink: '#0F0F0E',
         'ink-2': '#3A3A38',
         'ink-3': '#6B6B68',
         'ink-4': '#9A9A96',

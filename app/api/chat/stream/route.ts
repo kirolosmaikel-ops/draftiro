@@ -1,21 +1,6 @@
 import { createClient } from '@supabase/supabase-js'
 import { NextResponse } from 'next/server'
 
-/**
- * POST /api/chat/stream
- * Body: { message, sessionId?, documentId?, caseId? }
- *
- * Flow:
- *  1. Embed the user question via OpenAI text-embedding-3-small
- *  2. Vector-search document_chunks for top-k relevant passages (pgvector)
- *  3. Build a grounded system prompt with the retrieved chunks
- *  4. Stream Anthropic Claude response as SSE
- *  5. Emit citations after the stream ends
- *  6. Persist messages to chat_messages
- *
- * Runtime: Node.js (NOT edge) — @supabase/supabase-js requires Node.js APIs.
- * maxDuration: 60 s — Vercel Pro allows up to 300 s; 60 s covers most chats.
- */
 export const dynamic = 'force-dynamic'
 export const maxDuration = 60
 
@@ -24,6 +9,40 @@ function serviceClient() {
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.SUPABASE_SERVICE_ROLE_KEY!
   )
+}
+
+/** Resolve firm_id from session → document → case, in that order. */
+async function resolveFirmId(
+  supabase: ReturnType<typeof serviceClient>,
+  sessionId?: string,
+  documentId?: string,
+  caseId?: string
+): Promise<string | null> {
+  if (sessionId) {
+    const { data } = await supabase
+      .from('chat_sessions')
+      .select('firm_id')
+      .eq('id', sessionId)
+      .single()
+    if (data?.firm_id) return data.firm_id
+  }
+  if (documentId) {
+    const { data } = await supabase
+      .from('documents')
+      .select('firm_id')
+      .eq('id', documentId)
+      .single()
+    if (data?.firm_id) return data.firm_id
+  }
+  if (caseId) {
+    const { data } = await supabase
+      .from('cases')
+      .select('firm_id')
+      .eq('id', caseId)
+      .single()
+    if (data?.firm_id) return data.firm_id
+  }
+  return null
 }
 
 export async function POST(req: Request) {
@@ -42,7 +61,6 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: 'message is required' }, { status: 400 })
   }
 
-  // Validate env vars early — surface clear errors in Vercel logs
   if (!process.env.OPENAI_API_KEY) {
     console.error('[chat/stream] ✗ OPENAI_API_KEY not set')
     return NextResponse.json({ error: 'Server misconfiguration: OPENAI_API_KEY missing' }, { status: 500 })
@@ -53,6 +71,10 @@ export async function POST(req: Request) {
   }
 
   const supabase = serviceClient()
+
+  // ── Resolve firm_id ──────────────────────────────────────────────────────
+  const firmId = await resolveFirmId(supabase, sessionId, documentId, caseId)
+  console.log('[chat/stream] resolved firm_id:', firmId)
 
   // ── 1. Embed the question ────────────────────────────────────────────────
   console.log('[chat/stream] embedding question…')
@@ -82,13 +104,14 @@ export async function POST(req: Request) {
   interface ChunkResult { content: string; page_number: number; document_id: string; similarity: number }
   let chunks: ChunkResult[] = []
 
-  if (embedding) {
+  if (embedding && firmId) {
     try {
       const { data, error } = await supabase.rpc('match_document_chunks', {
         query_embedding: embedding,
         match_count: 6,
         filter_document_id: documentId ?? null,
         filter_case_id: caseId ?? null,
+        filter_firm_id: firmId,
       }) as { data: ChunkResult[]; error: { message: string } | null }
 
       if (error) {
@@ -100,6 +123,8 @@ export async function POST(req: Request) {
     } catch (e) {
       console.warn('[chat/stream] vector search threw (non-fatal):', e)
     }
+  } else if (embedding && !firmId) {
+    console.warn('[chat/stream] skipping vector search: firm_id could not be resolved')
   }
 
   // ── 2b. Guard: document selected but zero chunks found ───────────────────
@@ -119,7 +144,7 @@ export async function POST(req: Request) {
         'Content-Type': 'text/event-stream',
         'Cache-Control': 'no-cache, no-transform',
         'X-Accel-Buffering': 'no',
-        'Connection': 'keep-alive',
+        Connection: 'keep-alive',
       },
     })
   }
@@ -211,7 +236,6 @@ ${contextBlock}`
 
         // ── 5. Emit citations ──────────────────────────────────────────────
         if (chunks.length > 0) {
-          // Emit all top chunks as citations (even if not explicitly cited by name)
           const citations = chunks.slice(0, 4).map(c => ({
             page: c.page_number,
             text: c.content.slice(0, 140).trim() + '…',
@@ -220,27 +244,30 @@ ${contextBlock}`
         }
 
         // ── 6. Persist messages ────────────────────────────────────────────
-        if (sessionId) {
+        if (sessionId && firmId) {
           try {
             const { error: msgErr } = await supabase.from('chat_messages').insert([
               {
                 session_id: sessionId,
-                firm_id: null,  // will be resolved by DB trigger or next RLS pass
+                firm_id: firmId,
                 role: 'user',
                 content: message,
               },
               {
                 session_id: sessionId,
-                firm_id: null,
+                firm_id: firmId,
                 role: 'assistant',
                 content: fullText,
                 citations: chunks.slice(0, 4).map(c => ({ page: c.page_number })),
               },
             ])
             if (msgErr) console.warn('[chat/stream] message persist error (non-fatal):', msgErr.message)
+            else console.log('[chat/stream] ✓ messages persisted')
           } catch (e) {
             console.warn('[chat/stream] message persist threw (non-fatal):', e)
           }
+        } else if (sessionId && !firmId) {
+          console.warn('[chat/stream] skipping message persist: firm_id not resolved')
         }
 
         controller.enqueue(encoder.encode('data: [DONE]\n\n'))
@@ -258,7 +285,7 @@ ${contextBlock}`
     headers: {
       'Content-Type': 'text/event-stream',
       'Cache-Control': 'no-cache, no-transform',
-      'X-Accel-Buffering': 'no',   // disable Nginx/proxy buffering
+      'X-Accel-Buffering': 'no',
       Connection: 'keep-alive',
     },
   })
