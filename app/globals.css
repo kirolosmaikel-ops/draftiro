@@ -34,15 +34,20 @@
 
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
-html, body {
-  height: 100%;
-  overflow: hidden;
+html {
+  overflow-x: hidden; /* prevent horizontal scroll only */
+}
+
+body {
+  overflow-x: hidden;
   font-family: 'DM Sans', system-ui, sans-serif;
   background: var(--surface-2);
   color: var(--ink);
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
+
+/* App shell (protected layout) contains its own scroll — set via inline styles on the flex wrapper */
 
 /* ── SCROLLBAR ── */
 ::-webkit-scrollbar { width: 5px; height: 5px; }
