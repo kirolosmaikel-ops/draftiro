@@ -5,6 +5,7 @@ import { useSearchParams } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import Link from 'next/link'
 import { Suspense } from 'react'
+import { signIn } from '@/app/actions/auth'
 
 type Tab = 'magic' | 'password'
 type Mode = 'signin' | 'signup'
@@ -180,9 +181,9 @@ function LoginForm() {
             </form>
           )}
 
-          {/* ── Password tab — Sign In (native form POST → server route) ── */}
+          {/* ── Password tab — Sign In (server action) ── */}
           {tab === 'password' && mode === 'signin' && (
-            <form action="/api/auth/signin" method="post" style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+            <form action={signIn} style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
               <div>
                 <label style={labelStyle}>Email Address</label>
                 <input type="email" name="email" required placeholder="you@firm.com" style={inputStyle} autoComplete="email" />
