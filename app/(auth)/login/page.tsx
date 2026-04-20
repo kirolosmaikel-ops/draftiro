@@ -5,7 +5,6 @@ import { useSearchParams } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import Link from 'next/link'
 import { Suspense } from 'react'
-import { signIn } from '@/app/actions/auth'
 
 type Tab = 'magic' | 'password'
 type Mode = 'signin' | 'signup'
@@ -27,14 +26,61 @@ function LoginForm() {
     urlError ? { type: 'error', text: decodeURIComponent(urlError) } : null
   )
 
-  // Re-surface URL error when it changes (e.g. after a server-side redirect)
   useEffect(() => {
     if (urlError) setMessage({ type: 'error', text: decodeURIComponent(urlError) })
   }, [urlError])
 
   const supabase = createClient()
 
-  // ── Magic link (client-side — just sends email, no session to set) ──────
+  // ── Password sign-in (client-side so cookies are set in browser) ──────────
+  async function handleSignIn(e: React.FormEvent) {
+    e.preventDefault()
+    console.log('[login] handleSignIn called, email:', email)
+
+    if (!email.trim() || !password) {
+      setMessage({ type: 'error', text: 'Email and password are required.' })
+      return
+    }
+
+    setLoading(true)
+    setMessage(null)
+
+    try {
+      console.log('[login] calling supabase.auth.signInWithPassword…')
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email: email.trim(),
+        password,
+      })
+
+      if (error) {
+        console.error('[login] signInWithPassword error:', error)
+        setMessage({ type: 'error', text: error.message })
+        setLoading(false)
+        return
+      }
+
+      console.log('[login] ✓ signed in, user:', data.user?.id)
+
+      // Ensure firm+user profile rows exist before navigating
+      try {
+        console.log('[login] calling setup-profile…')
+        const res = await fetch('/api/auth/setup-profile', { method: 'POST' })
+        const json = await res.json()
+        console.log('[login] setup-profile result:', json)
+      } catch (err) {
+        console.warn('[login] setup-profile failed (non-fatal):', err)
+      }
+
+      console.log('[login] redirecting to /dashboard via window.location.href')
+      window.location.href = '/dashboard'
+    } catch (err) {
+      console.error('[login] unexpected error:', err)
+      setMessage({ type: 'error', text: `Unexpected error: ${String(err)}` })
+      setLoading(false)
+    }
+  }
+
+  // ── Magic link ────────────────────────────────────────────────────────────
   async function handleMagicLink(e: React.FormEvent) {
     e.preventDefault()
     if (!email.trim()) return
@@ -53,7 +99,7 @@ function LoginForm() {
     setLoading(false)
   }
 
-  // ── Sign up (client-side — admin create confirmed user via /setup is preferred) ──
+  // ── Sign up ───────────────────────────────────────────────────────────────
   async function handleSignUp(e: React.FormEvent) {
     e.preventDefault()
     if (!email.trim() || !password) return
@@ -68,17 +114,13 @@ function LoginForm() {
     }
     if (data.session?.access_token) {
       try {
-        await fetch('/api/auth/setup-profile', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${data.session.access_token}` },
-          body: JSON.stringify({ access_token: data.session.access_token }),
-        })
+        await fetch('/api/auth/setup-profile', { method: 'POST' })
       } catch { /* non-fatal */ }
       window.location.href = '/dashboard'
     } else {
-      setMessage({ type: 'success', text: 'Account created! Check your email to confirm it, then sign in. Or use /setup to create a confirmed account instantly.' })
+      setMessage({ type: 'success', text: 'Account created! Check your email to confirm it, then sign in. Or use /setup to skip confirmation.' })
+      setLoading(false)
     }
-    setLoading(false)
   }
 
   const inputStyle: React.CSSProperties = {
@@ -89,6 +131,12 @@ function LoginForm() {
   const labelStyle: React.CSSProperties = {
     display: 'block', fontSize: '12px', fontWeight: 600, color: '#6B6B68',
     marginBottom: '6px', letterSpacing: '0.04em', textTransform: 'uppercase',
+  }
+  const primaryBtn: React.CSSProperties = {
+    height: '48px', background: '#0F0F0E', color: '#fff', border: 'none', borderRadius: '10px',
+    fontSize: '15px', fontWeight: 600, fontFamily: 'inherit', cursor: loading ? 'not-allowed' : 'pointer',
+    opacity: loading ? 0.7 : 1, transition: 'all 0.18s ease',
+    display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px',
   }
 
   return (
@@ -122,7 +170,6 @@ function LoginForm() {
       <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#F7F6F3', padding: '48px', overflowY: 'auto' }}>
         <div style={{ width: '100%', maxWidth: '400px' }}>
 
-          {/* Env var warning */}
           {!supabaseConfigured && (
             <div style={{ padding: '14px 16px', background: '#FFF3CD', border: '1px solid #FBBF24', borderRadius: '10px', marginBottom: '24px', fontSize: '13px', color: '#92400E', lineHeight: 1.6 }}>
               <strong>⚠ Supabase not configured.</strong> Add{' '}
@@ -142,7 +189,7 @@ function LoginForm() {
           {/* Tabs */}
           <div style={{ display: 'flex', borderBottom: '1px solid rgba(0,0,0,0.07)', marginBottom: '24px' }}>
             {(['magic', 'password'] as Tab[]).map(t => (
-              <button key={t} onClick={() => { setTab(t); setMessage(null) }} style={{
+              <button key={t} type="button" onClick={() => { setTab(t); setMessage(null) }} style={{
                 padding: '10px 16px', fontSize: '13px', fontWeight: tab === t ? 600 : 500,
                 color: tab === t ? '#1D1D1F' : '#9A9A96', background: 'none', border: 'none',
                 borderBottom: `2px solid ${tab === t ? '#1D1D1F' : 'transparent'}`,
@@ -172,8 +219,10 @@ function LoginForm() {
                 <label style={labelStyle}>Email Address</label>
                 <input type="email" value={email} onChange={e => setEmail(e.target.value)} required placeholder="you@firm.com" style={inputStyle} autoComplete="email" />
               </div>
-              <button type="submit" disabled={loading} style={{ height: '48px', background: '#0F0F0E', color: '#fff', border: 'none', borderRadius: '10px', fontSize: '15px', fontWeight: 600, fontFamily: 'inherit', cursor: loading ? 'not-allowed' : 'pointer', opacity: loading ? 0.7 : 1, transition: 'all 0.18s ease' }}>
-                {loading ? 'Sending…' : 'Send Magic Link →'}
+              <button type="submit" disabled={loading} style={primaryBtn}>
+                {loading
+                  ? <><Spinner />Sending…</>
+                  : 'Send Magic Link →'}
               </button>
               <p style={{ fontSize: '12px', color: '#9A9A96', textAlign: 'center', lineHeight: 1.5 }}>
                 We&apos;ll email a one-click sign-in link. No password needed.
@@ -181,19 +230,38 @@ function LoginForm() {
             </form>
           )}
 
-          {/* ── Password tab — Sign In (server action) ── */}
+          {/* ── Password tab — Sign In ── */}
           {tab === 'password' && mode === 'signin' && (
-            <form action={signIn} style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+            <form onSubmit={handleSignIn} style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
               <div>
                 <label style={labelStyle}>Email Address</label>
-                <input type="email" name="email" required placeholder="you@firm.com" style={inputStyle} autoComplete="email" />
+                <input
+                  type="email"
+                  value={email}
+                  onChange={e => setEmail(e.target.value)}
+                  required
+                  placeholder="you@firm.com"
+                  style={inputStyle}
+                  autoComplete="email"
+                />
               </div>
               <div>
                 <label style={labelStyle}>Password</label>
-                <input type="password" name="password" required placeholder="••••••••" minLength={6} style={inputStyle} autoComplete="current-password" />
+                <input
+                  type="password"
+                  value={password}
+                  onChange={e => setPassword(e.target.value)}
+                  required
+                  placeholder="••••••••"
+                  minLength={6}
+                  style={inputStyle}
+                  autoComplete="current-password"
+                />
               </div>
-              <button type="submit" style={{ height: '48px', background: '#0F0F0E', color: '#fff', border: 'none', borderRadius: '10px', fontSize: '15px', fontWeight: 600, fontFamily: 'inherit', cursor: 'pointer', transition: 'all 0.18s ease' }}>
-                Sign In →
+              <button type="submit" disabled={loading} style={primaryBtn}>
+                {loading
+                  ? <><Spinner />Signing in…</>
+                  : 'Sign In →'}
               </button>
               <p style={{ textAlign: 'center', fontSize: '13.5px', color: '#9A9A96', marginTop: '4px' }}>
                 Don&apos;t have an account?{' '}
@@ -204,7 +272,7 @@ function LoginForm() {
             </form>
           )}
 
-          {/* ── Password tab — Sign Up (client-side, needs session handling) ── */}
+          {/* ── Password tab — Sign Up ── */}
           {tab === 'password' && mode === 'signup' && (
             <form onSubmit={handleSignUp} style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
               <div>
@@ -216,8 +284,10 @@ function LoginForm() {
                 <input type="password" value={password} onChange={e => setPassword(e.target.value)} required placeholder="••••••••" minLength={6} style={inputStyle} autoComplete="new-password" />
                 <p style={{ fontSize: '11.5px', color: '#9A9A96', marginTop: '5px' }}>Minimum 6 characters</p>
               </div>
-              <button type="submit" disabled={loading} style={{ height: '48px', background: '#0F0F0E', color: '#fff', border: 'none', borderRadius: '10px', fontSize: '15px', fontWeight: 600, fontFamily: 'inherit', cursor: loading ? 'not-allowed' : 'pointer', opacity: loading ? 0.7 : 1 }}>
-                {loading ? 'Creating account…' : 'Create Account →'}
+              <button type="submit" disabled={loading} style={primaryBtn}>
+                {loading
+                  ? <><Spinner />Creating account…</>
+                  : 'Create Account →'}
               </button>
               <p style={{ textAlign: 'center', fontSize: '13.5px', color: '#9A9A96', marginTop: '4px' }}>
                 Already have an account?{' '}
@@ -240,6 +310,17 @@ function LoginForm() {
         </div>
       </div>
     </div>
+  )
+}
+
+function Spinner() {
+  return (
+    <span style={{
+      width: '14px', height: '14px', border: '2px solid rgba(255,255,255,0.3)',
+      borderTopColor: '#fff', borderRadius: '50%',
+      display: 'inline-block',
+      animation: 'spin 0.7s linear infinite',
+    }} />
   )
 }
 

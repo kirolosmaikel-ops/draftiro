@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
+import { createClient as createSsrClient } from '@/lib/supabase/server'
 
 /**
  * POST /api/auth/setup-profile
@@ -57,6 +58,22 @@ export async function POST(req: Request) {
         }
       }
     } catch { /* body may not be JSON */ }
+  }
+
+  // Also try the SSR cookie-based session (browser sends cookies automatically on same-origin fetch)
+  if (!userId) {
+    try {
+      console.log('[setup-profile] trying cookie-based session…')
+      const ssrClient = await createSsrClient()
+      const { data: { user }, error } = await ssrClient.auth.getUser()
+      if (!error && user) {
+        userId = user.id
+        userEmail = user.email ?? null
+        console.log('[setup-profile] resolved user from cookie session:', userId)
+      }
+    } catch (e) {
+      console.warn('[setup-profile] cookie session lookup failed:', e)
+    }
   }
 
   if (!userId || !userEmail) {
