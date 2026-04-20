@@ -35,11 +35,13 @@ export async function middleware(request: NextRequest) {
   const isPublicRoute =
     pathname === '/' ||
     pathname.startsWith('/login') ||
+    pathname.startsWith('/setup') ||
     pathname.startsWith('/signup') ||
     pathname.startsWith('/forgot-password') ||
     pathname.startsWith('/auth') ||
     pathname.startsWith('/api/health') ||
-    pathname.startsWith('/api/auth/setup-profile')
+    pathname.startsWith('/api/auth/setup-profile') ||
+    pathname.startsWith('/api/auth/admin-create-user')
 
   // Redirect unauthenticated users to login
   if (!user && !isPublicRoute) {

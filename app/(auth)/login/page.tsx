@@ -2,9 +2,14 @@
 
 import { useState } from 'react'
 import { createClient } from '@/lib/supabase/client'
+import Link from 'next/link'
 
 type Tab = 'magic' | 'password'
 type Mode = 'signin' | 'signup'
+
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
+const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+const isMisconfigured = !supabaseUrl || !supabaseKey
 
 export default function LoginPage() {
   const [tab, setTab] = useState<Tab>('magic')
@@ -137,6 +142,18 @@ export default function LoginPage() {
       {/* Right panel */}
       <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#F7F6F3', padding: '48px', overflowY: 'auto' }}>
         <div style={{ width: '100%', maxWidth: '400px' }}>
+
+          {/* ── Misconfiguration warning ── */}
+          {isMisconfigured && (
+            <div style={{ padding: '14px 16px', background: '#FFF3CD', border: '1px solid #FBBF24', borderRadius: '10px', marginBottom: '24px', fontSize: '13px', color: '#92400E', lineHeight: 1.6 }}>
+              <strong>⚠ Supabase not configured.</strong> The environment variables{' '}
+              <code style={{ fontSize: '11px', background: 'rgba(0,0,0,0.08)', padding: '1px 4px', borderRadius: '3px' }}>NEXT_PUBLIC_SUPABASE_URL</code>{' '}
+              and{' '}
+              <code style={{ fontSize: '11px', background: 'rgba(0,0,0,0.08)', padding: '1px 4px', borderRadius: '3px' }}>NEXT_PUBLIC_SUPABASE_ANON_KEY</code>{' '}
+              are missing. Add them in your Vercel project settings → Environment Variables.
+            </div>
+          )}
+
           <h2 style={{ fontFamily: 'Newsreader, serif', fontSize: '30px', fontWeight: 600, color: '#1D1D1F', letterSpacing: '-0.5px', marginBottom: '6px' }}>
             {mode === 'signup' ? 'Create your account.' : 'Welcome back.'}
           </h2>
@@ -215,6 +232,15 @@ export default function LoginPage() {
               </p>
             </form>
           )}
+          {/* Setup link — shown when email confirmation blocks access */}
+          <div style={{ marginTop: '28px', padding: '14px 16px', background: '#F7F6F3', border: '0.5px solid rgba(0,0,0,0.07)', borderRadius: '10px' }}>
+            <p style={{ fontSize: '12.5px', color: '#6B6B68', lineHeight: 1.6, marginBottom: '8px' }}>
+              <strong style={{ color: '#3A3A38' }}>First time here?</strong> If sign-in isn&apos;t working, Supabase email confirmation may be blocking you.
+            </p>
+            <Link href="/setup" style={{ fontSize: '12.5px', fontWeight: 600, color: '#1A4FBF', textDecoration: 'none' }}>
+              Create a confirmed account at /setup →
+            </Link>
+          </div>
         </div>
       </div>
     </div>
