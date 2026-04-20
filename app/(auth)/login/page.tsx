@@ -1,37 +1,48 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
+import { useSearchParams } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import Link from 'next/link'
+import { Suspense } from 'react'
 
 type Tab = 'magic' | 'password'
 type Mode = 'signin' | 'signup'
 
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
-const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
-const isMisconfigured = !supabaseUrl || !supabaseKey
+const supabaseConfigured =
+  !!process.env.NEXT_PUBLIC_SUPABASE_URL &&
+  !!process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
 
-export default function LoginPage() {
+function LoginForm() {
+  const searchParams = useSearchParams()
+  const urlError = searchParams.get('error')
+
   const [tab, setTab] = useState<Tab>('magic')
   const [mode, setMode] = useState<Mode>('signin')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [loading, setLoading] = useState(false)
-  const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null)
+  const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(
+    urlError ? { type: 'error', text: decodeURIComponent(urlError) } : null
+  )
+
+  // Re-surface URL error when it changes (e.g. after a server-side redirect)
+  useEffect(() => {
+    if (urlError) setMessage({ type: 'error', text: decodeURIComponent(urlError) })
+  }, [urlError])
 
   const supabase = createClient()
 
+  // ── Magic link (client-side — just sends email, no session to set) ──────
   async function handleMagicLink(e: React.FormEvent) {
     e.preventDefault()
     if (!email.trim()) return
     setLoading(true)
     setMessage(null)
-
     const { error } = await supabase.auth.signInWithOtp({
       email: email.trim(),
       options: { emailRedirectTo: `${window.location.origin}/auth/callback` },
     })
-
     if (error) {
       console.error('[login] magic link error:', error)
       setMessage({ type: 'error', text: error.message })
@@ -41,65 +52,32 @@ export default function LoginPage() {
     setLoading(false)
   }
 
-  async function handlePassword(e: React.FormEvent) {
+  // ── Sign up (client-side — admin create confirmed user via /setup is preferred) ──
+  async function handleSignUp(e: React.FormEvent) {
     e.preventDefault()
     if (!email.trim() || !password) return
     setLoading(true)
     setMessage(null)
-
-    if (mode === 'signup') {
-      const { data, error } = await supabase.auth.signUp({ email: email.trim(), password })
-
-      if (error) {
-        console.error('[login] sign up error:', error)
-        setMessage({ type: 'error', text: error.message })
-        setLoading(false)
-        return
-      }
-
-      console.log('[login] sign up success, session:', !!data.session)
-
-      if (data.session?.access_token) {
-        try {
-          const setupRes = await fetch('/api/auth/setup-profile', {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-              Authorization: `Bearer ${data.session.access_token}`,
-            },
-            body: JSON.stringify({ access_token: data.session.access_token }),
-          })
-          const setupJson = await setupRes.json()
-          console.log('[login] setup-profile:', setupJson)
-        } catch (err) {
-          console.warn('[login] setup-profile threw (non-fatal):', err)
-        }
-        window.location.href = '/dashboard'
-      } else {
-        setMessage({
-          type: 'success',
-          text: 'Account created! Check your email to confirm your address, then sign in with your password.',
-        })
-      }
-      setLoading(false)
-      return
-    }
-
-    // Sign in
-    const { data, error } = await supabase.auth.signInWithPassword({
-      email: email.trim(),
-      password,
-    })
-
+    const { data, error } = await supabase.auth.signUp({ email: email.trim(), password })
     if (error) {
-      console.error('[login] sign in error:', error)
+      console.error('[login] sign up error:', error)
       setMessage({ type: 'error', text: error.message })
       setLoading(false)
       return
     }
-
-    console.log('[login] sign in success, user:', data.user?.id)
-    window.location.href = '/dashboard'
+    if (data.session?.access_token) {
+      try {
+        await fetch('/api/auth/setup-profile', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${data.session.access_token}` },
+          body: JSON.stringify({ access_token: data.session.access_token }),
+        })
+      } catch { /* non-fatal */ }
+      window.location.href = '/dashboard'
+    } else {
+      setMessage({ type: 'success', text: 'Account created! Check your email to confirm it, then sign in. Or use /setup to create a confirmed account instantly.' })
+    }
+    setLoading(false)
   }
 
   const inputStyle: React.CSSProperties = {
@@ -143,14 +121,13 @@ export default function LoginPage() {
       <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#F7F6F3', padding: '48px', overflowY: 'auto' }}>
         <div style={{ width: '100%', maxWidth: '400px' }}>
 
-          {/* ── Misconfiguration warning ── */}
-          {isMisconfigured && (
+          {/* Env var warning */}
+          {!supabaseConfigured && (
             <div style={{ padding: '14px 16px', background: '#FFF3CD', border: '1px solid #FBBF24', borderRadius: '10px', marginBottom: '24px', fontSize: '13px', color: '#92400E', lineHeight: 1.6 }}>
-              <strong>⚠ Supabase not configured.</strong> The environment variables{' '}
-              <code style={{ fontSize: '11px', background: 'rgba(0,0,0,0.08)', padding: '1px 4px', borderRadius: '3px' }}>NEXT_PUBLIC_SUPABASE_URL</code>{' '}
-              and{' '}
+              <strong>⚠ Supabase not configured.</strong> Add{' '}
+              <code style={{ fontSize: '11px', background: 'rgba(0,0,0,0.08)', padding: '1px 4px', borderRadius: '3px' }}>NEXT_PUBLIC_SUPABASE_URL</code> and{' '}
               <code style={{ fontSize: '11px', background: 'rgba(0,0,0,0.08)', padding: '1px 4px', borderRadius: '3px' }}>NEXT_PUBLIC_SUPABASE_ANON_KEY</code>{' '}
-              are missing. Add them in your Vercel project settings → Environment Variables.
+              in Vercel → Environment Variables.
             </div>
           )}
 
@@ -175,7 +152,7 @@ export default function LoginPage() {
             ))}
           </div>
 
-          {/* Error/success banner */}
+          {/* Error / success banner */}
           {message && (
             <div style={{
               padding: '12px 16px', borderRadius: '10px', marginBottom: '20px', fontSize: '13.5px', lineHeight: 1.5,
@@ -187,7 +164,7 @@ export default function LoginPage() {
             </div>
           )}
 
-          {/* Magic link form */}
+          {/* ── Magic link tab ── */}
           {tab === 'magic' && (
             <form onSubmit={handleMagicLink} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
               <div>
@@ -198,44 +175,62 @@ export default function LoginPage() {
                 {loading ? 'Sending…' : 'Send Magic Link →'}
               </button>
               <p style={{ fontSize: '12px', color: '#9A9A96', textAlign: 'center', lineHeight: 1.5 }}>
-                We&apos;ll email you a one-click sign-in link. No password needed.
+                We&apos;ll email a one-click sign-in link. No password needed.
               </p>
             </form>
           )}
 
-          {/* Password form */}
-          {tab === 'password' && (
-            <form onSubmit={handlePassword} style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+          {/* ── Password tab — Sign In (native form POST → server route) ── */}
+          {tab === 'password' && mode === 'signin' && (
+            <form action="/api/auth/signin" method="post" style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+              <div>
+                <label style={labelStyle}>Email Address</label>
+                <input type="email" name="email" required placeholder="you@firm.com" style={inputStyle} autoComplete="email" />
+              </div>
+              <div>
+                <label style={labelStyle}>Password</label>
+                <input type="password" name="password" required placeholder="••••••••" minLength={6} style={inputStyle} autoComplete="current-password" />
+              </div>
+              <button type="submit" style={{ height: '48px', background: '#0F0F0E', color: '#fff', border: 'none', borderRadius: '10px', fontSize: '15px', fontWeight: 600, fontFamily: 'inherit', cursor: 'pointer', transition: 'all 0.18s ease' }}>
+                Sign In →
+              </button>
+              <p style={{ textAlign: 'center', fontSize: '13.5px', color: '#9A9A96', marginTop: '4px' }}>
+                Don&apos;t have an account?{' '}
+                <button type="button" onClick={() => { setMode('signup'); setMessage(null) }} style={{ color: '#1D1D1F', fontWeight: 600, background: 'none', border: 'none', cursor: 'pointer', fontSize: '13.5px', fontFamily: 'inherit', padding: 0 }}>
+                  Create account free
+                </button>
+              </p>
+            </form>
+          )}
+
+          {/* ── Password tab — Sign Up (client-side, needs session handling) ── */}
+          {tab === 'password' && mode === 'signup' && (
+            <form onSubmit={handleSignUp} style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
               <div>
                 <label style={labelStyle}>Email Address</label>
                 <input type="email" value={email} onChange={e => setEmail(e.target.value)} required placeholder="you@firm.com" style={inputStyle} autoComplete="email" />
               </div>
               <div>
                 <label style={labelStyle}>Password</label>
-                <input type="password" value={password} onChange={e => setPassword(e.target.value)} required placeholder="••••••••" minLength={6} style={inputStyle} autoComplete={mode === 'signup' ? 'new-password' : 'current-password'} />
-                {mode === 'signup' && (
-                  <p style={{ fontSize: '11.5px', color: '#9A9A96', marginTop: '5px' }}>Minimum 6 characters</p>
-                )}
+                <input type="password" value={password} onChange={e => setPassword(e.target.value)} required placeholder="••••••••" minLength={6} style={inputStyle} autoComplete="new-password" />
+                <p style={{ fontSize: '11.5px', color: '#9A9A96', marginTop: '5px' }}>Minimum 6 characters</p>
               </div>
-              <button type="submit" disabled={loading} style={{ height: '48px', background: '#0F0F0E', color: '#fff', border: 'none', borderRadius: '10px', fontSize: '15px', fontWeight: 600, fontFamily: 'inherit', cursor: loading ? 'not-allowed' : 'pointer', opacity: loading ? 0.7 : 1, transition: 'all 0.18s ease' }}>
-                {loading
-                  ? (mode === 'signup' ? 'Creating account…' : 'Signing in…')
-                  : (mode === 'signup' ? 'Create Account →' : 'Sign In →')
-                }
+              <button type="submit" disabled={loading} style={{ height: '48px', background: '#0F0F0E', color: '#fff', border: 'none', borderRadius: '10px', fontSize: '15px', fontWeight: 600, fontFamily: 'inherit', cursor: loading ? 'not-allowed' : 'pointer', opacity: loading ? 0.7 : 1 }}>
+                {loading ? 'Creating account…' : 'Create Account →'}
               </button>
-
               <p style={{ textAlign: 'center', fontSize: '13.5px', color: '#9A9A96', marginTop: '4px' }}>
-                {mode === 'signin' ? "Don't have an account? " : 'Already have an account? '}
-                <button type="button" onClick={() => { setMode(mode === 'signin' ? 'signup' : 'signin'); setMessage(null) }} style={{ color: '#1D1D1F', fontWeight: 600, background: 'none', border: 'none', cursor: 'pointer', fontSize: '13.5px', fontFamily: 'inherit', padding: 0 }}>
-                  {mode === 'signin' ? 'Create account free' : 'Sign in instead'}
+                Already have an account?{' '}
+                <button type="button" onClick={() => { setMode('signin'); setMessage(null) }} style={{ color: '#1D1D1F', fontWeight: 600, background: 'none', border: 'none', cursor: 'pointer', fontSize: '13.5px', fontFamily: 'inherit', padding: 0 }}>
+                  Sign in instead
                 </button>
               </p>
             </form>
           )}
-          {/* Setup link — shown when email confirmation blocks access */}
-          <div style={{ marginTop: '28px', padding: '14px 16px', background: '#F7F6F3', border: '0.5px solid rgba(0,0,0,0.07)', borderRadius: '10px' }}>
-            <p style={{ fontSize: '12.5px', color: '#6B6B68', lineHeight: 1.6, marginBottom: '8px' }}>
-              <strong style={{ color: '#3A3A38' }}>First time here?</strong> If sign-in isn&apos;t working, Supabase email confirmation may be blocking you.
+
+          {/* Setup link */}
+          <div style={{ marginTop: '28px', padding: '14px 16px', background: '#F0EDE8', border: '0.5px solid rgba(0,0,0,0.07)', borderRadius: '10px' }}>
+            <p style={{ fontSize: '12.5px', color: '#6B6B68', lineHeight: 1.6, marginBottom: '6px' }}>
+              <strong style={{ color: '#3A3A38' }}>Can&apos;t log in?</strong> If Supabase email confirmation is blocking you:
             </p>
             <Link href="/setup" style={{ fontSize: '12.5px', fontWeight: 600, color: '#1A4FBF', textDecoration: 'none' }}>
               Create a confirmed account at /setup →
@@ -244,5 +239,13 @@ export default function LoginPage() {
         </div>
       </div>
     </div>
+  )
+}
+
+export default function LoginPage() {
+  return (
+    <Suspense fallback={null}>
+      <LoginForm />
+    </Suspense>
   )
 }

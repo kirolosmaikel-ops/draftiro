@@ -41,7 +41,8 @@ export async function middleware(request: NextRequest) {
     pathname.startsWith('/auth') ||
     pathname.startsWith('/api/health') ||
     pathname.startsWith('/api/auth/setup-profile') ||
-    pathname.startsWith('/api/auth/admin-create-user')
+    pathname.startsWith('/api/auth/admin-create-user') ||
+    pathname.startsWith('/api/auth/signin')
 
   // Redirect unauthenticated users to login
   if (!user && !isPublicRoute) {
