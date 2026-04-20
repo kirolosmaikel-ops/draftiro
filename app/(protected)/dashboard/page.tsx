@@ -2,7 +2,6 @@
 
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
-import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 
 interface Case {
@@ -146,7 +145,6 @@ function QuickActionBtn({ href, label, icon }: { href: string; label: string; ic
 }
 
 export default function DashboardPage() {
-  const router = useRouter()
   const supabase = createClient()
 
   const [userEmail, setUserEmail] = useState('')
@@ -158,8 +156,7 @@ export default function DashboardPage() {
   useEffect(() => {
     async function load() {
       const { data: { user } } = await supabase.auth.getUser()
-      if (!user) { router.push('/login'); return }
-      setUserEmail(user.email ?? '')
+      setUserEmail(user?.email ?? '')
 
       const [casesRes, docsRes] = await Promise.all([
         supabase
