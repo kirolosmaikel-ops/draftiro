@@ -31,6 +31,24 @@ function LoginForm() {
 
   const supabase = createClient()
 
+  // ── Shared: commit session server-side then navigate ──────────────────────
+  async function commitAndRedirect(accessToken: string, refreshToken: string) {
+    console.log('[login] committing session server-side…')
+    const res = await fetch('/api/auth/set-session', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ access_token: accessToken, refresh_token: refreshToken }),
+    })
+    if (!res.ok) {
+      const json = await res.json().catch(() => ({})) as { error?: string }
+      throw new Error(json.error ?? 'Failed to establish session')
+    }
+    console.log('[login] session committed, running setup-profile…')
+    await fetch('/api/auth/setup-profile', { method: 'POST' })
+    console.log('[login] redirecting to /dashboard')
+    window.location.href = '/dashboard'
+  }
+
   // ── Password sign-in ─────────────────────────────────────────────────────
   const handleSignIn = async () => {
     setLoading(true)
@@ -46,10 +64,10 @@ function LoginForm() {
         return
       }
       if (data.session) {
-        console.log('[login] session ok, calling setup-profile…')
-        await fetch('/api/auth/setup-profile', { method: 'POST' })
-        console.log('[login] redirecting to /dashboard')
-        window.location.href = '/dashboard'
+        await commitAndRedirect(data.session.access_token, data.session.refresh_token)
+      } else {
+        setError('Sign in succeeded but no session returned. Try the Magic Link tab.')
+        setLoading(false)
       }
     } catch (e: unknown) {
       const msg = e instanceof Error ? e.message : 'Something went wrong'
@@ -76,9 +94,9 @@ function LoginForm() {
         return
       }
       if (data.session) {
-        await fetch('/api/auth/setup-profile', { method: 'POST' })
-        window.location.href = '/dashboard'
+        await commitAndRedirect(data.session.access_token, data.session.refresh_token)
       } else {
+        // Email confirmation required — Supabase default
         setSuccessMsg('Account created! Check your email to confirm, then sign in.')
         setLoading(false)
       }

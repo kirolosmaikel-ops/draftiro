@@ -7,6 +7,7 @@ const PUBLIC_ROUTES = [
   '/login',
   '/auth/callback',
   '/api/auth/setup-profile',
+  '/api/auth/set-session',
   '/api/health',
   '/setup',
   '/pricing',
