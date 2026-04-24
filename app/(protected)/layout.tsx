@@ -59,6 +59,20 @@ const WORKSPACE_NAV = [
   },
 ]
 
+const ACCOUNT_NAV = [
+  {
+    href: '/billing',
+    label: 'Billing & Plan',
+    icon: (
+      <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" width="16" height="16">
+        <rect x="1" y="3" width="14" height="10" rx="2" />
+        <path d="M1 6h14" />
+        <path d="M4 10h3" />
+      </svg>
+    ),
+  },
+]
+
 const TOOLS_NAV = [
   {
     href: '/debug',
@@ -204,6 +218,29 @@ export default function ProtectedLayout({ children }: { children: React.ReactNod
               const active =
                 pathname === href ||
                 (href !== '/dashboard' && pathname?.startsWith(href))
+              return (
+                <NavItem key={href} href={href} label={label} icon={icon} active={!!active} />
+              )
+            })}
+          </nav>
+
+          {/* ACCOUNT section */}
+          <div
+            style={{
+              fontSize: '10px',
+              fontWeight: 600,
+              letterSpacing: '0.1em',
+              textTransform: 'uppercase',
+              color: 'rgba(255,255,255,0.28)',
+              padding: '20px 24px 8px',
+              fontFamily: 'DM Sans, sans-serif',
+            }}
+          >
+            Account
+          </div>
+          <nav>
+            {ACCOUNT_NAV.map(({ href, label, icon }) => {
+              const active = pathname === href || pathname?.startsWith(href)
               return (
                 <NavItem key={href} href={href} label={label} icon={icon} active={!!active} />
               )
