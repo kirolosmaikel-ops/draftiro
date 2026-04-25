@@ -31,25 +31,25 @@ function LoginForm() {
 
   const supabase = createClient()
 
-  // ── Password sign-in (server-side — cookies guaranteed before navigation) ──
+  // ── Password sign-in ─────────────────────────────────────────────────────
   const handleSignIn = async () => {
     setLoading(true)
     setError('')
     setSuccessMsg('')
     try {
-      const res = await fetch('/api/auth/login', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email: email.trim(), password }),
-      })
-      const json = await res.json() as { ok?: boolean; error?: string }
-      if (!res.ok || !json.ok) {
-        setError(json.error ?? 'Sign in failed. Check your email and password.')
+      const { data, error } = await supabase.auth.signInWithPassword({ email: email.trim(), password })
+      if (error) {
+        setError(error.message)
         setLoading(false)
         return
       }
-      // Session cookies are now in the browser (came in the response Set-Cookie headers).
-      // Navigate — middleware will see them immediately.
+      if (!data.session) {
+        setError('No session returned. Your email may need confirmation — try the Magic Link tab.')
+        setLoading(false)
+        return
+      }
+      // Session is now in browser cookies. Middleware uses getSession() (local JWT
+      // validation — no network call), so it will see the session immediately.
       window.location.href = '/dashboard'
     } catch (e: unknown) {
       const msg = e instanceof Error ? e.message : 'Something went wrong'
@@ -75,17 +75,8 @@ function LoginForm() {
         return
       }
       if (data.session) {
-        // Supabase auto-confirmed — commit server-side then navigate
-        const res = await fetch('/api/auth/login', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ email: email.trim(), password }),
-        })
-        const json = await res.json() as { ok?: boolean; error?: string }
-        if (res.ok && json.ok) {
-          window.location.href = '/dashboard'
-          return
-        }
+        window.location.href = '/dashboard'
+        return
       }
       setSuccessMsg('Account created! Check your email to confirm, then sign in. Or use the Magic Link tab.')
       setLoading(false)

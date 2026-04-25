@@ -49,15 +49,21 @@ export async function middleware(request: NextRequest) {
       }
     )
 
+    // getSession() validates the JWT locally (no Supabase network call).
+    // getUser() makes a live network request to Supabase on EVERY page load —
+    // if that request is slow, times out, or returns an unexpected error the
+    // middleware sees user=null and redirects to /login even when you're logged in.
     const {
-      data: { user },
-    } = await supabase.auth.getUser()
+      data: { session },
+    } = await supabase.auth.getSession()
 
-    if (!isPublic && !user) {
+    const isAuthenticated = !!session?.user
+
+    if (!isPublic && !isAuthenticated) {
       return NextResponse.redirect(new URL('/login', request.url))
     }
 
-    if (pathname === '/login' && user) {
+    if (pathname === '/login' && isAuthenticated) {
       return NextResponse.redirect(new URL('/dashboard', request.url))
     }
 
