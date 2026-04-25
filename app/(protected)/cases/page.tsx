@@ -218,14 +218,11 @@ function SelectField({
 }
 
 function Modal({ title, onClose, children }: { title: string; onClose: () => void; children: React.ReactNode }) {
-  // Close on backdrop click
-  function handleBackdrop(e: React.MouseEvent<HTMLDivElement>) {
-    if (e.target === e.currentTarget) onClose()
-  }
-
+  // Close only via the X / Cancel buttons. Backdrop-click-to-close was
+  // killing the modal whenever a native <select> dropdown option was
+  // clicked outside the modal's bounding box.
   return (
     <div
-      onClick={handleBackdrop}
       style={{
         position: 'fixed',
         inset: 0,

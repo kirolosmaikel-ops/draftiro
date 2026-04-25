@@ -396,7 +396,7 @@ export default function EditorPage() {
       <div style={{ display: 'flex', flex: 1, overflow: 'hidden' }}>
 
         {/* ── Editor main ── */}
-        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+        <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
 
           {/* Editor canvas */}
           <div style={{
@@ -406,69 +406,7 @@ export default function EditorPage() {
             background: '#F7F6F3',
             position: 'relative',
           }}>
-            {/* AI suggestion card (floating, left of page) */}
             <div style={{ maxWidth: '680px', margin: '0 auto', position: 'relative' }}>
-              <div style={{
-                position: 'absolute',
-                left: '-200px',
-                top: '80px',
-                width: '182px',
-                background: '#FFFFFF',
-                border: '1px solid rgba(0,0,0,0.07)',
-                borderRadius: '14px',
-                padding: '12px 14px',
-                boxShadow: '0 2px 12px rgba(0,0,0,0.08)',
-              }}>
-                <div style={{
-                  fontSize: '9px',
-                  fontWeight: 700,
-                  letterSpacing: '0.12em',
-                  textTransform: 'uppercase',
-                  color: '#8B6914',
-                  marginBottom: '6px',
-                  fontFamily: "'DM Sans', sans-serif",
-                }}>
-                  AI Suggestion
-                </div>
-                <p style={{
-                  fontSize: '11.5px',
-                  color: '#3A3A38',
-                  lineHeight: 1.4,
-                  marginBottom: '10px',
-                  fontFamily: "'DM Sans', sans-serif",
-                }}>
-                  Consider adding a Force Majeure clause to protect against unforeseen events.
-                </p>
-                <div style={{ display: 'flex', gap: '5px' }}>
-                  <button style={{
-                    background: '#0F0F0E',
-                    color: '#FFFFFF',
-                    border: 'none',
-                    borderRadius: '6px',
-                    padding: '4px 10px',
-                    fontSize: '10.5px',
-                    fontWeight: 600,
-                    cursor: 'pointer',
-                    fontFamily: "'DM Sans', sans-serif",
-                  }}>
-                    Accept
-                  </button>
-                  <button style={{
-                    background: 'none',
-                    border: '1px solid rgba(0,0,0,0.07)',
-                    borderRadius: '6px',
-                    padding: '4px 10px',
-                    fontSize: '10.5px',
-                    fontWeight: 600,
-                    color: '#6B6B68',
-                    cursor: 'pointer',
-                    fontFamily: "'DM Sans', sans-serif",
-                  }}>
-                    Dismiss
-                  </button>
-                </div>
-              </div>
-
               {/* Editor page */}
               <div style={{
                 background: '#FFFFFF',
@@ -589,59 +527,19 @@ export default function EditorPage() {
             </div>
           </div>
 
-          {/* Panel chat input */}
+          {/* Panel chat input — disabled until backend is wired. Use the
+              dedicated /chat page for real AI conversations. */}
           <div style={{
             borderTop: '1px solid rgba(0,0,0,0.07)',
             padding: '12px',
             flexShrink: 0,
+            fontSize: '11.5px',
+            color: '#9A9A96',
+            fontFamily: "'DM Sans', sans-serif",
+            textAlign: 'center',
+            lineHeight: 1.5,
           }}>
-            <div style={{
-              display: 'flex',
-              alignItems: 'flex-end',
-              gap: '8px',
-              background: '#F7F6F3',
-              border: '1px solid rgba(0,0,0,0.07)',
-              borderRadius: '10px',
-              padding: '8px 36px 8px 12px',
-              position: 'relative',
-            }}>
-              <textarea
-                placeholder="Ask AI anything…"
-                rows={1}
-                style={{
-                  flex: 1,
-                  border: 'none',
-                  background: 'none',
-                  outline: 'none',
-                  fontSize: '12.5px',
-                  fontFamily: "'DM Sans', sans-serif",
-                  color: '#0F0F0E',
-                  resize: 'none',
-                  minHeight: '20px',
-                  maxHeight: '80px',
-                }}
-              />
-              <button style={{
-                position: 'absolute',
-                right: '8px',
-                bottom: '8px',
-                width: '30px',
-                height: '30px',
-                background: '#0F0F0E',
-                border: 'none',
-                borderRadius: '6px',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                cursor: 'pointer',
-                flexShrink: 0,
-                transition: TR,
-              }}>
-                <svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="#fff" strokeWidth="1.8">
-                  <path d="M2 14l12-6L2 2v5l8 1-8 1v5z" />
-                </svg>
-              </button>
-            </div>
+            For full AI chat, use the <a href="/chat" style={{ color: '#1A4FBF', fontWeight: 600 }}>Cases &amp; Documents</a> page.
           </div>
         </div>
       </div>

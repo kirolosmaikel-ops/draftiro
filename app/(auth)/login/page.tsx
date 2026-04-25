@@ -55,7 +55,15 @@ function LoginForm() {
         setLoading(false)
         return
       }
-      // Cookies are now committed in this response's Set-Cookie headers.
+      // Hydrate the browser SDK so client-side Supabase calls (Add Client,
+      // Create Case, save draft, etc.) carry the JWT. Without this, all
+      // client-side queries silently fail under RLS.
+      if (json.session?.access_token && json.session?.refresh_token) {
+        await supabase.auth.setSession({
+          access_token: json.session.access_token,
+          refresh_token: json.session.refresh_token,
+        })
+      }
       window.location.href = '/dashboard'
     } catch (e: unknown) {
       const msg = e instanceof Error ? e.message : 'Network error — please try again.'

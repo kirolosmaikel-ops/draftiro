@@ -189,7 +189,7 @@ export default function ProtectedLayout({ children }: { children: React.ReactNod
   const username = userEmail ? userEmail.split('@')[0] : ''
   const initials = username
     ? username.slice(0, 2).toUpperCase()
-    : '??'
+    : '·'
 
   return (
     <div style={{ display: 'flex', height: '100vh', overflow: 'hidden' }}>

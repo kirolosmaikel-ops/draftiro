@@ -848,7 +848,6 @@ export default function KnowledgePage() {
       ══════════════════════════════════════════ */}
       {showNewClient && (
         <div
-          onClick={resetNewClientModal}
           style={{
             position: 'fixed',
             inset: 0,

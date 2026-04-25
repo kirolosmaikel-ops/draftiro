@@ -116,7 +116,6 @@ export default function DashboardPage() {
   const [firm, setFirm] = useState<FirmData | null>(null)
   const [loading, setLoading] = useState(true)
   const [dataError, setDataError] = useState('')
-  const [searchQuery, setSearchQuery] = useState('')
 
   useEffect(() => {
     async function load() {
@@ -205,18 +204,8 @@ export default function DashboardPage() {
         <span style={{ fontSize: '14px', fontWeight: 700, color: '#0F0F0E', fontFamily: 'DM Sans, sans-serif', flexShrink: 0 }}>
           Dashboard
         </span>
-        <div style={{ width: '1px', height: '16px', background: 'rgba(0,0,0,0.07)', flexShrink: 0 }} />
-        <div style={{ flex: 1, maxWidth: '280px', position: 'relative' }}>
-          <svg style={{ position: 'absolute', left: '10px', top: '50%', transform: 'translateY(-50%)', color: '#9A9A96', pointerEvents: 'none' }} width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="2">
-            <circle cx="6.5" cy="6.5" r="4.5" /><path d="M10 10l3 3" />
-          </svg>
-          <input
-            value={searchQuery}
-            onChange={e => setSearchQuery(e.target.value)}
-            placeholder="Search cases, docs, clients…"
-            style={{ width: '100%', height: '30px', background: '#F7F6F3', border: 'none', borderRadius: '99px', padding: '0 12px 0 32px', fontSize: '12.5px', fontFamily: 'DM Sans, sans-serif', color: '#0F0F0E', outline: 'none', boxSizing: 'border-box' }}
-          />
-        </div>
+        {/* Global search hidden until backend search is wired */}
+        <div style={{ flex: 1 }} />
         <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: '8px' }}>
           <Link href="/chat" style={{ background: '#0F0F0E', color: '#ffffff', border: 'none', borderRadius: '99px', padding: '0 16px', height: '32px', fontSize: '12.5px', fontWeight: 700, fontFamily: 'DM Sans, sans-serif', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: '6px', textDecoration: 'none' }}>
             <svg width="11" height="11" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M8 2v12M2 8h12" /></svg>
@@ -277,7 +266,7 @@ export default function DashboardPage() {
           </p>
 
           {/* Stats grid */}
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '14px', marginBottom: '32px' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '14px', marginBottom: '32px' }}>
             {statCards.map((card, i) => (
               <div
                 key={card.label}
