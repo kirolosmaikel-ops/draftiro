@@ -1,6 +1,8 @@
 import { NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 import { createClient as createServerClient } from '@/lib/supabase/server'
+import { checkUploadLimit } from '@/lib/rate-limit'
+import { log, logError, logWarn } from '@/lib/log'
 
 /**
  * POST /api/documents/upload
@@ -28,13 +30,13 @@ function serviceClientDirect() {
 }
 
 export async function POST(req: Request) {
-  console.log('[upload] ▶ request received')
+  log('[upload] ▶ request received')
 
   // ── 0. Validate env ────────────────────────────────────────────────────
   const missingEnv = ['NEXT_PUBLIC_SUPABASE_URL', 'SUPABASE_SERVICE_ROLE_KEY', 'OPENAI_API_KEY']
     .filter(k => !process.env[k])
   if (missingEnv.length) {
-    console.error('[upload] ✗ missing env vars:', missingEnv)
+    logError('[upload] ✗ missing env vars:', missingEnv)
     return NextResponse.json({ error: `Server misconfiguration: ${missingEnv.join(', ')} not set` }, { status: 500 })
   }
 
@@ -56,7 +58,7 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: 'No file provided' }, { status: 400 })
   }
 
-  console.log('[upload] file:', file.name, 'size:', file.size, 'type:', file.type)
+  log('[upload] file:', file.name, 'size:', file.size, 'type:', file.type)
 
   // ── 2. Resolve user identity (cookie session first, then Bearer token) ──
   let userId: string | null = null
@@ -74,10 +76,10 @@ export async function POST(req: Request) {
         .eq('id', user.id)
         .single()
       firmId = userData?.firm_id ?? null
-      console.log('[upload] auth via cookie — user:', userId, 'firm:', firmId)
+      log('[upload] auth via cookie — user:', userId, 'firm:', firmId)
     }
   } catch (e) {
-    console.warn('[upload] cookie auth failed, trying bearer:', e)
+    logWarn('[upload] cookie auth failed, trying bearer:', e)
   }
 
   // Fallback: Authorization header (e.g. from onboarding page fetch)
@@ -94,16 +96,26 @@ export async function POST(req: Request) {
           .eq('id', user.id)
           .single()
         firmId = userData?.firm_id ?? null
-        console.log('[upload] auth via bearer — user:', userId, 'firm:', firmId)
+        log('[upload] auth via bearer — user:', userId, 'firm:', firmId)
       }
     }
   }
 
   if (!userId) {
-    console.warn('[upload] ⚠ no user identity resolved — proceeding without firm_id')
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
   if (!firmId) {
-    console.warn('[upload] ⚠ firm_id is null — document will be stored without firm association')
+    return NextResponse.json({ error: 'No firm associated with user' }, { status: 403 })
+  }
+
+  // ── 2b. Rate limit (20 uploads/hour per firm) ─────────────────────────
+  const limitRes = checkUploadLimit(firmId)
+  if (!limitRes.ok) {
+    logWarn('[upload] rate limited firm', firmId, 'retry in', limitRes.retryAfterSec, 's')
+    return NextResponse.json(
+      { error: `Upload limit reached. Try again in ${Math.ceil(limitRes.retryAfterSec / 60)} minutes.` },
+      { status: 429, headers: { 'Retry-After': String(limitRes.retryAfterSec) } }
+    )
   }
 
   // ── 3. Upload file to Supabase Storage ────────────────────────────────
@@ -111,19 +123,19 @@ export async function POST(req: Request) {
   const fileBytes = await file.arrayBuffer()
   const storagePath = `${firmId ?? 'public'}/${Date.now()}_${file.name.replace(/[^a-zA-Z0-9._-]/g, '_')}`
 
-  console.log('[upload] uploading to storage:', bucket, storagePath)
+  log('[upload] uploading to storage:', bucket, storagePath)
   const { error: uploadError } = await supabase.storage
     .from(bucket)
     .upload(storagePath, fileBytes, { contentType: file.type || 'application/octet-stream', upsert: false })
 
   if (uploadError) {
-    console.error('[upload] ✗ storage upload failed:', uploadError.message)
+    logError('[upload] ✗ storage upload failed:', uploadError.message)
     return NextResponse.json({
       error: `Storage upload failed: ${uploadError.message}`,
       hint: 'Make sure the "documents" bucket exists in Supabase Storage and has the correct policies.',
     }, { status: 500 })
   }
-  console.log('[upload] ✓ file stored at', storagePath)
+  log('[upload] ✓ file stored at', storagePath)
 
   // ── 4. Insert document row (status: processing) ────────────────────────
   const { data: docRow, error: docError } = await supabase.from('documents').insert({
@@ -139,12 +151,12 @@ export async function POST(req: Request) {
   }).select('id').single()
 
   if (docError || !docRow) {
-    console.error('[upload] ✗ DB insert failed:', docError?.message)
+    logError('[upload] ✗ DB insert failed:', docError?.message)
     return NextResponse.json({ error: `DB insert failed: ${docError?.message}` }, { status: 500 })
   }
 
   const documentId = docRow.id
-  console.log('[upload] ✓ document row created:', documentId)
+  log('[upload] ✓ document row created:', documentId)
 
   // ── 5. Parse text from file ────────────────────────────────────────────
   let fullText = ''
@@ -159,11 +171,11 @@ export async function POST(req: Request) {
       fullText = await file.text()
       pageCount = 1
       parseMethod = 'text'
-      console.log('[upload] ✓ read plain text, chars:', fullText.length)
+      log('[upload] ✓ read plain text, chars:', fullText.length)
 
     } else if (process.env.LLAMAPARSE_API_KEY) {
       // Try LlamaParse with a hard 25-second timeout
-      console.log('[upload] trying LlamaParse…')
+      log('[upload] trying LlamaParse…')
       const timeoutMs = 25_000
 
       try {
@@ -190,7 +202,7 @@ export async function POST(req: Request) {
         }
 
         const { id: jobId } = await llamaRes.json() as { id: string }
-        console.log('[upload] LlamaParse job queued:', jobId)
+        log('[upload] LlamaParse job queued:', jobId)
 
         // Poll with 15-second total budget (upload already took some of the 25 s)
         const pollDeadline = Date.now() + 15_000
@@ -202,7 +214,7 @@ export async function POST(req: Request) {
             headers: { Authorization: `Bearer ${process.env.LLAMAPARSE_API_KEY}` },
           })
           const statusJson = await statusRes.json() as { status: string; num_pages?: number }
-          console.log('[upload] LlamaParse status:', statusJson.status)
+          log('[upload] LlamaParse status:', statusJson.status)
 
           if (statusJson.status === 'SUCCESS') {
             pageCount = statusJson.num_pages ?? 1
@@ -214,7 +226,7 @@ export async function POST(req: Request) {
             fullText = textJson.text ?? ''
             parseMethod = 'llamaparse'
             parsed = true
-            console.log('[upload] ✓ LlamaParse done, pages:', pageCount, 'chars:', fullText.length)
+            log('[upload] ✓ LlamaParse done, pages:', pageCount, 'chars:', fullText.length)
             break
           }
           if (statusJson.status === 'ERROR') {
@@ -227,7 +239,7 @@ export async function POST(req: Request) {
         }
 
       } catch (llamaErr) {
-        console.warn('[upload] LlamaParse failed:', String(llamaErr), '— falling back to pdf-parse')
+        logWarn('[upload] LlamaParse failed:', String(llamaErr), '— falling back to pdf-parse')
         // Fall through to pdf-parse below
       }
     }
@@ -236,7 +248,7 @@ export async function POST(req: Request) {
     if (!fullText) {
       const filename2 = file.name.toLowerCase()
       if (filename2.endsWith('.pdf')) {
-        console.log('[upload] using pdf-parse fallback…')
+        log('[upload] using pdf-parse fallback…')
         try {
           // eslint-disable-next-line @typescript-eslint/no-explicit-any
           const pdfParseModule = await import('pdf-parse') as any
@@ -246,9 +258,9 @@ export async function POST(req: Request) {
           fullText = result.text ?? ''
           pageCount = result.numpages ?? 1
           parseMethod = 'pdf-parse'
-          console.log('[upload] ✓ pdf-parse done, pages:', pageCount, 'chars:', fullText.length)
+          log('[upload] ✓ pdf-parse done, pages:', pageCount, 'chars:', fullText.length)
         } catch (pdfErr) {
-          console.error('[upload] pdf-parse also failed:', pdfErr)
+          logError('[upload] pdf-parse also failed:', pdfErr)
           throw new Error(`All parsers failed for ${file.name}: ${pdfErr}`)
         }
       } else if (filename2.endsWith('.docx')) {
@@ -256,7 +268,7 @@ export async function POST(req: Request) {
         const result = await mammoth.extractRawText({ buffer: Buffer.from(fileBytes) })
         fullText = result.value ?? ''
         parseMethod = 'mammoth'
-        console.log('[upload] ✓ mammoth done, chars:', fullText.length)
+        log('[upload] ✓ mammoth done, chars:', fullText.length)
       } else {
         // Unknown type — try reading as text
         fullText = new TextDecoder('utf-8', { fatal: false }).decode(fileBytes)
@@ -265,7 +277,7 @@ export async function POST(req: Request) {
     }
 
   } catch (parseErr) {
-    console.error('[upload] ✗ all parsing failed:', parseErr)
+    logError('[upload] ✗ all parsing failed:', parseErr)
     await supabase.from('documents').update({
       status: 'error',
       error_message: `Parsing failed: ${String(parseErr).slice(0, 500)}`,
@@ -277,7 +289,7 @@ export async function POST(req: Request) {
   }
 
   if (!fullText?.trim()) {
-    console.warn('[upload] ⚠ empty text after parsing')
+    logWarn('[upload] ⚠ empty text after parsing')
     await supabase.from('documents').update({
       status: 'error',
       error_message: 'No text extracted from document',
@@ -288,7 +300,7 @@ export async function POST(req: Request) {
     }, { status: 422 })
   }
 
-  console.log('[upload] parse method:', parseMethod, '| text length:', fullText.length)
+  log('[upload] parse method:', parseMethod, '| text length:', fullText.length)
 
   // ── 6. Chunk text (~2 000 chars, 200-char overlap) ─────────────────────
   const CHUNK_SIZE = 2000
@@ -300,12 +312,12 @@ export async function POST(req: Request) {
     start += CHUNK_SIZE - CHUNK_OVERLAP
   }
   const chunks = rawChunks.filter(c => c.length > 50)  // skip near-empty chunks
-  console.log('[upload] ✓ chunked into', chunks.length, 'chunks')
+  log('[upload] ✓ chunked into', chunks.length, 'chunks')
 
   // ── 7. Embed chunks via OpenAI ─────────────────────────────────────────
   const BATCH = 20
   const allEmbeddings: number[][] = []
-  console.log('[upload] embedding', chunks.length, 'chunks in batches of', BATCH)
+  log('[upload] embedding', chunks.length, 'chunks in batches of', BATCH)
 
   for (let i = 0; i < chunks.length; i += BATCH) {
     const batch = chunks.slice(i, i + BATCH)
@@ -320,7 +332,7 @@ export async function POST(req: Request) {
 
     if (!embRes.ok) {
       const errText = await embRes.text()
-      console.error('[upload] ✗ OpenAI embedding failed:', embRes.status, errText)
+      logError('[upload] ✗ OpenAI embedding failed:', embRes.status, errText)
       await supabase.from('documents').update({
         status: 'error',
         error_message: `Embedding failed (batch ${i / BATCH}): ${errText.slice(0, 200)}`,
@@ -330,7 +342,7 @@ export async function POST(req: Request) {
 
     const embJson = await embRes.json() as { data: { embedding: number[] }[] }
     allEmbeddings.push(...embJson.data.map(d => d.embedding))
-    console.log('[upload] embedded batch', Math.floor(i / BATCH) + 1, '— total so far:', allEmbeddings.length)
+    log('[upload] embedded batch', Math.floor(i / BATCH) + 1, '— total so far:', allEmbeddings.length)
   }
 
   // ── 8. Insert document_chunks ──────────────────────────────────────────
@@ -346,7 +358,7 @@ export async function POST(req: Request) {
   for (let i = 0; i < chunkRows.length; i += 100) {
     const { error: chunkErr } = await supabase.from('document_chunks').insert(chunkRows.slice(i, i + 100))
     if (chunkErr) {
-      console.error('[upload] ✗ chunk insert failed:', chunkErr.message)
+      logError('[upload] ✗ chunk insert failed:', chunkErr.message)
       await supabase.from('documents').update({
         status: 'error',
         error_message: `Chunk insert failed: ${chunkErr.message}`,
@@ -362,7 +374,7 @@ export async function POST(req: Request) {
     metadata: { parseMethod, chunkCount: chunks.length },
   }).eq('id', documentId)
 
-  console.log('[upload] ✓ complete — document', documentId, '| chunks:', chunks.length, '| pages:', pageCount)
+  log('[upload] ✓ complete — document', documentId, '| chunks:', chunks.length, '| pages:', pageCount)
 
   return NextResponse.json({
     id: documentId,

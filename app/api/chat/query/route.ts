@@ -8,6 +8,20 @@ export async function GET(req: Request) {
   if (!sessionId) return NextResponse.json({ error: 'sessionId required' }, { status: 400 })
 
   const supabase = await createClient()
+
+  // ── AUTH: must be logged in ──────────────────────────────────────────────
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+
+  // RLS will enforce firm_id isolation, but we also explicitly check that the
+  // session belongs to the caller's firm before returning messages.
+  const { data: session } = await supabase
+    .from('chat_sessions')
+    .select('id, firm_id')
+    .eq('id', sessionId)
+    .single()
+  if (!session) return NextResponse.json({ error: 'Session not found' }, { status: 404 })
+
   const { data, error } = await supabase
     .from('chat_messages')
     .select('id,role,content,citations,created_at')

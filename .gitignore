@@ -40,5 +40,6 @@ next-env.d.ts
 /supabase/.branches
 /supabase/.temp
 
-# Claude worktrees
+# Claude
 .claude/worktrees/
+.claude/settings.local.json

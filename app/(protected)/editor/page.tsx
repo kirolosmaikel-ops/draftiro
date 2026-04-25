@@ -385,26 +385,7 @@ export default function EditorPage() {
                   </svg>
                   Export as .docx
                 </div>
-                <div
-                  onClick={() => exportDoc('pdf')}
-                  style={{
-                    padding: '9px 14px',
-                    fontSize: '13px',
-                    color: '#A0281A',
-                    cursor: 'pointer',
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '8px',
-                    transition: TR,
-                  }}
-                  onMouseEnter={e => (e.currentTarget.style.background = '#F7F6F3')}
-                  onMouseLeave={e => (e.currentTarget.style.background = 'none')}
-                >
-                  <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5">
-                    <rect x="2" y="1" width="12" height="14" rx="1" /><path d="M5 6h6M5 9h6M5 12h4" />
-                  </svg>
-                  Export as .pdf
-                </div>
+                {/* PDF export — hidden until backend is implemented */}
               </div>
             )}
           </div>
@@ -580,98 +561,32 @@ export default function EditorPage() {
               <span style={{ flex: 1, height: '1px', background: 'rgba(0,0,0,0.07)', display: 'block' }} />
             </div>
 
-            {[
-              { title: 'Smith v. Jones, 2019', court: '9th Cir.', quote: '"…the obligation of good faith extends to all contractual dealings…"' },
-              { title: 'Baker Corp. v. Reed, 2021', court: 'S.D.N.Y.', quote: '"…force majeure clauses must be construed narrowly…"' },
-            ].map((c, i) => (
-              <div key={i} style={{
-                background: '#F7F6F3',
-                borderRadius: '10px',
-                padding: '12px',
-                marginBottom: '8px',
-                border: '1px solid rgba(0,0,0,0.07)',
-              }}>
-                <div style={{ fontSize: '12.5px', fontWeight: 600, color: '#0F0F0E', marginBottom: '2px' }}>{c.title}</div>
-                <div style={{ fontSize: '11px', color: '#6B6B68', marginBottom: '8px' }}>{c.court}</div>
-                <div style={{
-                  fontSize: '11.5px',
-                  color: '#3A3A38',
-                  lineHeight: 1.5,
-                  fontStyle: 'italic',
-                  borderLeft: '2px solid #C9A84C',
-                  paddingLeft: '8px',
-                  marginBottom: '8px',
-                }}>
-                  {c.quote}
-                </div>
-                <button style={{
-                  fontSize: '11px',
-                  fontWeight: 600,
-                  color: '#1A4FBF',
-                  background: '#EEF3FF',
-                  border: 'none',
-                  padding: '4px 10px',
-                  borderRadius: '6px',
-                  cursor: 'pointer',
-                  fontFamily: "'DM Sans', sans-serif",
-                }}>
-                  Insert
-                </button>
-              </div>
-            ))}
-
-            {/* Clause Alternatives section */}
             <div style={{
-              fontSize: '10px',
-              fontWeight: 700,
-              letterSpacing: '0.1em',
-              textTransform: 'uppercase',
-              color: '#9A9A96',
-              margin: '16px 0 10px',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '6px',
-              fontFamily: "'DM Sans', sans-serif",
+              background: '#F7F6F3',
+              borderRadius: '12px',
+              padding: '28px 18px',
+              border: '1px dashed rgba(0,0,0,0.10)',
+              textAlign: 'center',
             }}>
-              Clause Alternatives
-              <span style={{ flex: 1, height: '1px', background: 'rgba(0,0,0,0.07)', display: 'block' }} />
-            </div>
-
-            {[
-              'Either Party may terminate this Agreement upon thirty (30) days written notice to the other Party.',
-              'This Agreement shall automatically renew for successive one-year terms unless terminated by either Party with sixty (60) days prior written notice.',
-            ].map((clause, i) => (
-              <div key={i} style={{
-                background: '#F7F6F3',
-                borderRadius: '10px',
-                padding: '12px',
-                marginBottom: '8px',
-                border: '1px solid rgba(0,0,0,0.07)',
+              <div style={{ fontSize: '24px', marginBottom: '8px', lineHeight: 1 }}>✨</div>
+              <div style={{
+                fontSize: '13px',
+                fontWeight: 600,
+                color: '#3A3A38',
+                marginBottom: '4px',
+                fontFamily: "'DM Sans', sans-serif",
               }}>
-                <p style={{
-                  fontSize: '12px',
-                  color: '#3A3A38',
-                  lineHeight: 1.5,
-                  marginBottom: '8px',
-                  fontFamily: "'Newsreader', serif",
-                }}>
-                  {clause}
-                </p>
-                <button style={{
-                  fontSize: '11px',
-                  fontWeight: 600,
-                  color: '#1A7A4A',
-                  background: '#E8F5EE',
-                  border: 'none',
-                  padding: '4px 10px',
-                  borderRadius: '6px',
-                  cursor: 'pointer',
-                  fontFamily: "'DM Sans', sans-serif",
-                }}>
-                  Use this
-                </button>
+                Citations & clause suggestions
               </div>
-            ))}
+              <div style={{
+                fontSize: '11.5px',
+                color: '#9A9A96',
+                lineHeight: 1.5,
+                fontFamily: "'DM Sans', sans-serif",
+              }}>
+                Coming soon — ask the AI panel below for help drafting from your case documents.
+              </div>
+            </div>
           </div>
 
           {/* Panel chat input */}

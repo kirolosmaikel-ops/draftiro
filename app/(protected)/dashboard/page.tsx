@@ -186,11 +186,8 @@ export default function DashboardPage() {
     { num: '0', label: 'AI Drafts Ready', change: 'Create a new draft', changeColor: '#6B6B68' },
   ]
 
-  const activityItems = [
-    { time: '9:14 AM', text: 'AI summarized Chen v. Meridian Corp' },
-    { time: '8:52 AM', text: 'Draft contract uploaded to Knowledge Base' },
-    { time: 'Yesterday', text: '3 new cases created' },
-  ]
+  // Real activity feed comes online when there's actual activity to show.
+  const activityItems: { time: string; text: string }[] = []
 
   return (
     <div style={{ display: 'flex', flex: 1, overflow: 'hidden', flexDirection: 'column' }}>
@@ -327,15 +324,21 @@ export default function DashboardPage() {
           <div style={{ fontSize: '13px', fontWeight: 700, color: '#0F0F0E', marginBottom: '16px', fontFamily: 'DM Sans, sans-serif' }}>
             Today&apos;s AI Activity
           </div>
-          <div style={{ borderLeft: '2px solid #C9A84C', paddingLeft: '14px', marginBottom: '28px', display: 'flex', flexDirection: 'column', gap: '14px' }}>
-            {activityItems.map((item, i) => (
-              <div key={i} style={{ position: 'relative' }}>
-                <div style={{ position: 'absolute', left: '-19px', top: '5px', width: '6px', height: '6px', borderRadius: '50%', background: '#C9A84C' }} />
-                <div style={{ fontSize: '11px', color: '#9A9A96', fontFamily: 'DM Sans, sans-serif', marginBottom: '2px' }}>{item.time}</div>
-                <div style={{ fontSize: '12.5px', color: '#3A3A38', fontFamily: 'DM Sans, sans-serif', lineHeight: 1.4 }}>{item.text}</div>
-              </div>
-            ))}
-          </div>
+          {activityItems.length > 0 ? (
+            <div style={{ borderLeft: '2px solid #C9A84C', paddingLeft: '14px', marginBottom: '28px', display: 'flex', flexDirection: 'column', gap: '14px' }}>
+              {activityItems.map((item, i) => (
+                <div key={i} style={{ position: 'relative' }}>
+                  <div style={{ position: 'absolute', left: '-19px', top: '5px', width: '6px', height: '6px', borderRadius: '50%', background: '#C9A84C' }} />
+                  <div style={{ fontSize: '11px', color: '#9A9A96', fontFamily: 'DM Sans, sans-serif', marginBottom: '2px' }}>{item.time}</div>
+                  <div style={{ fontSize: '12.5px', color: '#3A3A38', fontFamily: 'DM Sans, sans-serif', lineHeight: 1.4 }}>{item.text}</div>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div style={{ fontSize: '12px', color: '#9A9A96', fontFamily: 'DM Sans, sans-serif', lineHeight: 1.5, marginBottom: '28px', padding: '12px 14px', background: 'rgba(255,255,255,0.5)', borderRadius: '10px', border: '1px dashed rgba(0,0,0,0.08)' }}>
+              Your activity will appear here as you upload documents, chat, and draft.
+            </div>
+          )}
           <div style={{ fontSize: '13px', fontWeight: 700, color: '#0F0F0E', marginBottom: '10px', fontFamily: 'DM Sans, sans-serif' }}>Quick Actions</div>
           <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
             <QuickActionBtn href="/chat" label="New Document Chat" icon={<svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5"><path d="M2 2h12a1 1 0 011 1v7a1 1 0 01-1 1H5l-3 3V3a1 1 0 011-1z" /></svg>} />

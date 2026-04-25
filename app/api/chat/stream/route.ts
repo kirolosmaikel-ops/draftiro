@@ -1,5 +1,8 @@
 import { createClient } from '@supabase/supabase-js'
 import { NextResponse } from 'next/server'
+import { createClient as createCookieClient } from '@/lib/supabase/server'
+import { checkChatLimit, maxTokensForPlan } from '@/lib/rate-limit'
+import { log, logError, logWarn } from '@/lib/log'
 
 export const dynamic = 'force-dynamic'
 export const maxDuration = 60
@@ -46,7 +49,7 @@ async function resolveFirmId(
 }
 
 export async function POST(req: Request) {
-  console.log('[chat/stream] ▶ request received')
+  log('[chat/stream] ▶ request received')
 
   let body: { message: string; sessionId?: string; documentId?: string; caseId?: string }
   try {
@@ -62,22 +65,61 @@ export async function POST(req: Request) {
   }
 
   if (!process.env.OPENAI_API_KEY) {
-    console.error('[chat/stream] ✗ OPENAI_API_KEY not set')
+    logError('[chat/stream] ✗ OPENAI_API_KEY not set')
     return NextResponse.json({ error: 'Server misconfiguration: OPENAI_API_KEY missing' }, { status: 500 })
   }
   if (!process.env.ANTHROPIC_API_KEY) {
-    console.error('[chat/stream] ✗ ANTHROPIC_API_KEY not set')
+    logError('[chat/stream] ✗ ANTHROPIC_API_KEY not set')
     return NextResponse.json({ error: 'Server misconfiguration: ANTHROPIC_API_KEY missing' }, { status: 500 })
+  }
+
+  // ── AUTH: require a logged-in user, resolve their firm_id from cookies ───
+  const cookieClient = await createCookieClient()
+  const { data: { user } } = await cookieClient.auth.getUser()
+  if (!user) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
 
   const supabase = serviceClient()
 
-  // ── Resolve firm_id ──────────────────────────────────────────────────────
-  const firmId = await resolveFirmId(supabase, sessionId, documentId, caseId)
-  console.log('[chat/stream] resolved firm_id:', firmId)
+  const { data: userRow } = await supabase
+    .from('users')
+    .select('firm_id')
+    .eq('id', user.id)
+    .single()
+  const userFirmId: string | null = userRow?.firm_id ?? null
+  if (!userFirmId) {
+    return NextResponse.json({ error: 'No firm associated with user' }, { status: 403 })
+  }
+
+  // Resolve firm_id from the referenced session/document/case
+  const refFirmId = await resolveFirmId(supabase, sessionId, documentId, caseId)
+  log('[chat/stream] user firm:', userFirmId, '| ref firm:', refFirmId)
+
+  // If a session/doc/case was specified, it must belong to the caller's firm
+  if (refFirmId && refFirmId !== userFirmId) {
+    return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+  }
+  const firmId: string = userFirmId
+
+  // ── RATE LIMIT (plan-aware) ──────────────────────────────────────────────
+  const { data: firmRow } = await supabase
+    .from('firms')
+    .select('stripe_plan, subscription_status')
+    .eq('id', firmId)
+    .single()
+  const plan = firmRow?.stripe_plan as string | null | undefined
+  const limitRes = checkChatLimit(firmId, plan)
+  if (!limitRes.ok) {
+    logWarn('[chat/stream] rate limited firm', firmId, 'retry in', limitRes.retryAfterSec, 's')
+    return NextResponse.json(
+      { error: `Rate limit exceeded. Try again in ${limitRes.retryAfterSec}s.` },
+      { status: 429, headers: { 'Retry-After': String(limitRes.retryAfterSec) } }
+    )
+  }
 
   // ── 1. Embed the question ────────────────────────────────────────────────
-  console.log('[chat/stream] embedding question…')
+  log('[chat/stream] embedding question…')
   let embedding: number[] | null = null
   try {
     const embRes = await fetch('https://api.openai.com/v1/embeddings', {
@@ -90,14 +132,14 @@ export async function POST(req: Request) {
     })
     if (!embRes.ok) {
       const errText = await embRes.text()
-      console.error('[chat/stream] OpenAI embed failed:', embRes.status, errText)
+      logError('[chat/stream] OpenAI embed failed:', embRes.status, errText)
     } else {
       const embJson = await embRes.json() as { data: [{ embedding: number[] }] }
       embedding = embJson.data[0].embedding
-      console.log('[chat/stream] ✓ embedding done, dims:', embedding.length)
+      log('[chat/stream] ✓ embedding done, dims:', embedding.length)
     }
   } catch (e) {
-    console.error('[chat/stream] OpenAI embed threw:', e)
+    logError('[chat/stream] OpenAI embed threw:', e)
   }
 
   // ── 2. Vector search ─────────────────────────────────────────────────────
@@ -115,16 +157,14 @@ export async function POST(req: Request) {
       }) as { data: ChunkResult[]; error: { message: string } | null }
 
       if (error) {
-        console.warn('[chat/stream] vector search RPC error (non-fatal):', error.message)
+        logWarn('[chat/stream] vector search RPC error (non-fatal):', error.message)
       } else {
         chunks = data ?? []
-        console.log('[chat/stream] ✓ vector search returned', chunks.length, 'chunks')
+        log('[chat/stream] ✓ vector search returned', chunks.length, 'chunks')
       }
     } catch (e) {
-      console.warn('[chat/stream] vector search threw (non-fatal):', e)
+      logWarn('[chat/stream] vector search threw (non-fatal):', e)
     }
-  } else if (embedding && !firmId) {
-    console.warn('[chat/stream] skipping vector search: firm_id could not be resolved')
   }
 
   // ── 2b. Guard: document selected but zero chunks found ───────────────────
@@ -164,7 +204,8 @@ DOCUMENT EXCERPTS:
 ${contextBlock}`
 
   // ── 4. Stream from Anthropic ─────────────────────────────────────────────
-  console.log('[chat/stream] calling Anthropic claude-3-5-sonnet…')
+  log('[chat/stream] calling Anthropic claude-3-5-sonnet…')
+  const maxTokens = maxTokensForPlan(plan)
 
   const encoder = new TextEncoder()
 
@@ -184,7 +225,7 @@ ${contextBlock}`
           },
           body: JSON.stringify({
             model: 'claude-3-5-sonnet-20241022',
-            max_tokens: 1024,
+            max_tokens: maxTokens,
             stream: true,
             system: systemPrompt,
             messages: [{ role: 'user', content: message }],
@@ -193,7 +234,7 @@ ${contextBlock}`
 
         if (!anthropicRes.ok) {
           const errText = await anthropicRes.text()
-          console.error('[chat/stream] ✗ Anthropic returned', anthropicRes.status, ':', errText)
+          logError('[chat/stream] ✗ Anthropic returned', anthropicRes.status, ':', errText)
           send({ type: 'error', content: `AI service error (${anthropicRes.status}): ${errText.slice(0, 200)}` })
           send({ type: 'text', content: `I'm sorry, I encountered an error connecting to the AI service. Please try again.` })
           controller.enqueue(encoder.encode('data: [DONE]\n\n'))
@@ -201,7 +242,7 @@ ${contextBlock}`
           return
         }
 
-        console.log('[chat/stream] ✓ Anthropic stream started')
+        log('[chat/stream] ✓ Anthropic stream started')
 
         const reader = anthropicRes.body!.getReader()
         const decoder = new TextDecoder()
@@ -232,7 +273,7 @@ ${contextBlock}`
           }
         }
 
-        console.log('[chat/stream] ✓ stream complete, chars:', fullText.length)
+        log('[chat/stream] ✓ stream complete, chars:', fullText.length)
 
         // ── 5. Emit citations ──────────────────────────────────────────────
         if (chunks.length > 0) {
@@ -244,7 +285,7 @@ ${contextBlock}`
         }
 
         // ── 6. Persist messages ────────────────────────────────────────────
-        if (sessionId && firmId) {
+        if (sessionId) {
           try {
             const { error: msgErr } = await supabase.from('chat_messages').insert([
               {
@@ -261,18 +302,16 @@ ${contextBlock}`
                 citations: chunks.slice(0, 4).map(c => ({ page: c.page_number })),
               },
             ])
-            if (msgErr) console.warn('[chat/stream] message persist error (non-fatal):', msgErr.message)
-            else console.log('[chat/stream] ✓ messages persisted')
+            if (msgErr) logWarn('[chat/stream] message persist error (non-fatal):', msgErr.message)
+            else log('[chat/stream] ✓ messages persisted')
           } catch (e) {
-            console.warn('[chat/stream] message persist threw (non-fatal):', e)
+            logWarn('[chat/stream] message persist threw (non-fatal):', e)
           }
-        } else if (sessionId && !firmId) {
-          console.warn('[chat/stream] skipping message persist: firm_id not resolved')
         }
 
         controller.enqueue(encoder.encode('data: [DONE]\n\n'))
       } catch (err) {
-        console.error('[chat/stream] ✗ unhandled error in stream:', err)
+        logError('[chat/stream] ✗ unhandled error in stream:', err)
         send({ type: 'text', content: `An unexpected error occurred: ${String(err).slice(0, 200)}` })
         controller.enqueue(encoder.encode('data: [DONE]\n\n'))
       } finally {

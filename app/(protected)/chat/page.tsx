@@ -39,9 +39,6 @@ const surf2  = '#F7F6F3'
 const gold   = '#8B6914'
 const goldL  = '#F5EDD8'
 const blue   = '#1A4FBF'
-const blueL  = '#EEF3FF'
-const green  = '#1A7A4A'
-const greenL = '#E8F5EE'
 const hair   = 'rgba(0,0,0,0.07)'
 const rSm    = '6px'
 const rMd    = '10px'
@@ -674,110 +671,21 @@ function ChatPageInner() {
 
           {/* Draft panel body */}
           <div style={{ flex: 1, overflowY: 'auto', padding: '16px' }}>
-            {/* Citations section */}
             <div style={{
-              fontSize: '10px', fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase',
-              color: ink4, marginBottom: '10px', display: 'flex', alignItems: 'center', gap: '6px',
+              background: surf2,
+              borderRadius: rMd,
+              padding: '28px 18px',
+              border: `1px dashed ${hair}`,
+              textAlign: 'center',
             }}>
-              Citations
-              <span style={{ flex: 1, height: '1px', background: hair }} />
-            </div>
-
-            {/* Citation card 1 */}
-            <div style={{
-              background: surf2, borderRadius: rMd, padding: '12px', marginBottom: '8px',
-              border: `1px solid ${hair}`,
-            }}>
-              <div style={{ fontSize: '12.5px', fontWeight: 600, color: ink, marginBottom: '2px' }}>
-                Smith v. Jones, 9th Cir. 2021
+              <div style={{ fontSize: '22px', marginBottom: '8px', lineHeight: 1 }}>📎</div>
+              <div style={{ fontSize: '12.5px', fontWeight: 600, color: ink, marginBottom: '4px' }}>
+                Draft assistant
               </div>
-              <div style={{ fontSize: '11px', color: ink3, marginBottom: '8px' }}>
-                948 F.3d 1092 · Contracts
+              <div style={{ fontSize: '11.5px', color: ink3, lineHeight: 1.5 }}>
+                Citation insert and clause suggestions are coming soon.
+                Use the chat to ask for a draft and copy what you need.
               </div>
-              <div style={{
-                fontSize: '11.5px', color: ink2, lineHeight: 1.5, fontStyle: 'italic',
-                borderLeft: `2px solid #C9A84C`, paddingLeft: '8px', marginBottom: '8px',
-              }}>
-                &ldquo;Pre-signing notice of objectionable terms combined with no opportunity to negotiate may constitute procedural unconscionability.&rdquo;
-              </div>
-              <button style={{
-                fontSize: '11px', fontWeight: 600, color: blue, background: blueL,
-                border: 'none', padding: '4px 10px', borderRadius: rSm, cursor: 'pointer',
-              }}>
-                Insert Citation
-              </button>
-            </div>
-
-            {/* Citation card 2 */}
-            <div style={{
-              background: surf2, borderRadius: rMd, padding: '12px', marginBottom: '8px',
-              border: `1px solid ${hair}`,
-            }}>
-              <div style={{ fontSize: '12.5px', fontWeight: 600, color: ink, marginBottom: '2px' }}>
-                FRCP Rule 6(b)
-              </div>
-              <div style={{ fontSize: '11px', color: ink3, marginBottom: '8px' }}>
-                Federal Rules of Civil Procedure
-              </div>
-              <div style={{
-                fontSize: '11.5px', color: ink2, lineHeight: 1.5, fontStyle: 'italic',
-                borderLeft: `2px solid #C9A84C`, paddingLeft: '8px', marginBottom: '8px',
-              }}>
-                &ldquo;When an act may or must be done within a specified time, the court may, for good cause, extend the time.&rdquo;
-              </div>
-              <button style={{
-                fontSize: '11px', fontWeight: 600, color: blue, background: blueL,
-                border: 'none', padding: '4px 10px', borderRadius: rSm, cursor: 'pointer',
-              }}>
-                Insert Citation
-              </button>
-            </div>
-
-            {/* Clause alternatives section */}
-            <div style={{
-              fontSize: '10px', fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase',
-              color: ink4, marginBottom: '10px', marginTop: '16px', display: 'flex', alignItems: 'center', gap: '6px',
-            }}>
-              Clause Alternatives
-              <span style={{ flex: 1, height: '1px', background: hair }} />
-            </div>
-
-            {/* Clause card 1 */}
-            <div style={{
-              background: surf2, borderRadius: rMd, padding: '12px', marginBottom: '8px',
-              border: `1px solid ${hair}`,
-            }}>
-              <div style={{
-                fontSize: '12px', color: ink2, lineHeight: 1.5, marginBottom: '8px',
-                fontFamily: "'Newsreader', Georgia, serif",
-              }}>
-                &ldquo;The indemnifying party&apos;s liability under this Agreement shall not exceed the total fees paid in the twelve (12) months preceding the claim.&rdquo;
-              </div>
-              <button style={{
-                fontSize: '11px', fontWeight: 600, color: green, background: greenL,
-                border: 'none', padding: '4px 10px', borderRadius: rSm, cursor: 'pointer',
-              }}>
-                Use This
-              </button>
-            </div>
-
-            {/* Clause card 2 */}
-            <div style={{
-              background: surf2, borderRadius: rMd, padding: '12px', marginBottom: '8px',
-              border: `1px solid ${hair}`,
-            }}>
-              <div style={{
-                fontSize: '12px', color: ink2, lineHeight: 1.5, marginBottom: '8px',
-                fontFamily: "'Newsreader', Georgia, serif",
-              }}>
-                &ldquo;Each party shall be liable only for direct damages and shall not be liable for any indirect, incidental, or consequential damages.&rdquo;
-              </div>
-              <button style={{
-                fontSize: '11px', fontWeight: 600, color: green, background: greenL,
-                border: 'none', padding: '4px 10px', borderRadius: rSm, cursor: 'pointer',
-              }}>
-                Use This
-              </button>
             </div>
           </div>
 

@@ -76,7 +76,7 @@ export default function KnowledgePage() {
   const [selectedClient, setSelectedClient] = useState<Client | null>(null)
 
   // Right-column state
-  const [tab, setTab] = useState<'documents' | 'notes' | 'ai-summary' | 'timeline'>('documents')
+  const [tab, setTab] = useState<'documents' | 'notes' | 'ai-summary'>('documents')
   const [docs, setDocs] = useState<Doc[]>([])
   const [cases, setCases] = useState<Case[]>([])
   const [notes, setNotes] = useState('')
@@ -608,8 +608,8 @@ export default function KnowledgePage() {
                 background: '#FFFFFF',
                 flexShrink: 0,
               }}>
-                {(['documents', 'notes', 'ai-summary', 'timeline'] as const).map(t => {
-                  const label = t === 'ai-summary' ? 'AI Summary' : t === 'documents' ? 'Documents' : t === 'notes' ? 'Notes' : 'Timeline'
+                {(['documents', 'notes', 'ai-summary'] as const).map(t => {
+                  const label = t === 'ai-summary' ? 'AI Summary' : t === 'documents' ? 'Documents' : 'Notes'
                   const isActive = tab === t
                   const isHov = hoveredTab === t
                   return (
@@ -652,7 +652,6 @@ export default function KnowledgePage() {
                       const ext = fileExt(d.name)
                       const isPdf = ext === 'PDF'
                       const btnId = `chat-${d.id}`
-                      const dlId = `dl-${d.id}`
                       return (
                         <div
                           key={d.id}
@@ -735,31 +734,7 @@ export default function KnowledgePage() {
                                 <path d="M3 3h10a1 1 0 011 1v7a1 1 0 01-1 1H5l-3 3V4a1 1 0 011-1z" />
                               </svg>
                             </a>
-                            {/* Download icon */}
-                            <button
-                              id={dlId}
-                              onMouseEnter={() => setHoveredActionBtn(dlId)}
-                              onMouseLeave={() => setHoveredActionBtn(null)}
-                              style={{
-                                width: '28px',
-                                height: '28px',
-                                border: '1px solid rgba(0,0,0,0.07)',
-                                background: hoveredActionBtn === dlId ? '#0F0F0E' : '#F7F6F3',
-                                borderColor: hoveredActionBtn === dlId ? '#0F0F0E' : 'rgba(0,0,0,0.07)',
-                                borderRadius: '6px',
-                                display: 'flex',
-                                alignItems: 'center',
-                                justifyContent: 'center',
-                                cursor: 'pointer',
-                                color: hoveredActionBtn === dlId ? '#FFFFFF' : '#6B6B68',
-                                transition: TR,
-                              }}
-                              title="Download"
-                            >
-                              <svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.8">
-                                <path d="M8 2v9M5 8l3 3 3-3" /><path d="M3 14h10" />
-                              </svg>
-                            </button>
+                            {/* Download — coming soon */}
                           </div>
                         </div>
                       )
@@ -862,17 +837,6 @@ export default function KnowledgePage() {
                   </div>
                 )}
 
-                {/* Timeline tab */}
-                {tab === 'timeline' && (
-                  <div style={{
-                    textAlign: 'center',
-                    padding: '48px 0',
-                    color: '#9A9A96',
-                    fontSize: '13.5px',
-                  }}>
-                    Timeline coming soon
-                  </div>
-                )}
               </div>
             </>
           )}

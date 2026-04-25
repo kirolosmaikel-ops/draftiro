@@ -116,16 +116,48 @@ function NavItem({ href, label, icon, active }: { href: string; label: string; i
   )
 }
 
+interface BillingState {
+  status: string | null
+  trial_ends_at: string | null
+  current_period_end: string | null
+}
+
 export default function ProtectedLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname()
   const router = useRouter()
   const supabase = createClient()
   const [userEmail, setUserEmail] = useState<string>('')
   const [signOutHovered, setSignOutHovered] = useState(false)
+  const [billing, setBilling] = useState<BillingState | null>(null)
+
+  // Hide Debug nav in production. Set NEXT_PUBLIC_SHOW_DEBUG_NAV=1 to override.
+  const showDebug =
+    process.env.NODE_ENV !== 'production' ||
+    process.env.NEXT_PUBLIC_SHOW_DEBUG_NAV === '1'
 
   useEffect(() => {
-    supabase.auth.getUser().then(({ data: { user } }) => {
+    supabase.auth.getUser().then(async ({ data: { user } }) => {
       if (user?.email) setUserEmail(user.email)
+      if (!user) return
+      // Fetch billing state (RLS scopes to the caller's firm)
+      const { data: userRow } = await supabase
+        .from('users')
+        .select('firm_id')
+        .eq('id', user.id)
+        .single()
+      if (!userRow?.firm_id) return
+      const { data: firm } = await supabase
+        .from('firms')
+        .select('subscription_status, trial_ends_at, current_period_end')
+        .eq('id', userRow.firm_id)
+        .single()
+      if (firm) {
+        setBilling({
+          status: firm.subscription_status ?? null,
+          trial_ends_at: firm.trial_ends_at ?? null,
+          current_period_end: firm.current_period_end ?? null,
+        })
+      }
     })
   }, [])
 
@@ -137,6 +169,22 @@ export default function ProtectedLayout({ children }: { children: React.ReactNod
   // Bypass sidebar on onboarding pages
   const isOnboarding = pathname?.startsWith('/onboarding')
   if (isOnboarding) return <>{children}</>
+
+  // Compute trial-expiry banner state
+  const now = Date.now()
+  const trialEnds = billing?.trial_ends_at ? new Date(billing.trial_ends_at).getTime() : null
+  const status = billing?.status
+  const trialExpired = trialEnds !== null && trialEnds < now
+  const isPastDue = status === 'past_due' || status === 'unpaid'
+  const isCanceled = status === 'canceled' || status === null
+  // Show banner if past due, OR (trial expired AND no active subscription)
+  const showBanner =
+    isPastDue ||
+    (trialExpired && (isCanceled || status === 'trialing'))
+
+  let bannerText = ''
+  if (isPastDue) bannerText = 'Your payment is past due. Update your card to continue.'
+  else if (showBanner) bannerText = 'Your free trial has ended. Upgrade to continue using Draftiro.'
 
   const username = userEmail ? userEmail.split('@')[0] : ''
   const initials = username
@@ -247,28 +295,32 @@ export default function ProtectedLayout({ children }: { children: React.ReactNod
             })}
           </nav>
 
-          {/* TOOLS section */}
-          <div
-            style={{
-              fontSize: '10px',
-              fontWeight: 600,
-              letterSpacing: '0.1em',
-              textTransform: 'uppercase',
-              color: 'rgba(255,255,255,0.28)',
-              padding: '20px 24px 8px',
-              fontFamily: 'DM Sans, sans-serif',
-            }}
-          >
-            Tools
-          </div>
-          <nav>
-            {TOOLS_NAV.map(({ href, label, icon }) => {
-              const active = pathname === href || pathname?.startsWith(href)
-              return (
-                <NavItem key={href} href={href} label={label} icon={icon} active={!!active} />
-              )
-            })}
-          </nav>
+          {/* TOOLS section — dev only */}
+          {showDebug && (
+            <>
+              <div
+                style={{
+                  fontSize: '10px',
+                  fontWeight: 600,
+                  letterSpacing: '0.1em',
+                  textTransform: 'uppercase',
+                  color: 'rgba(255,255,255,0.28)',
+                  padding: '20px 24px 8px',
+                  fontFamily: 'DM Sans, sans-serif',
+                }}
+              >
+                Tools
+              </div>
+              <nav>
+                {TOOLS_NAV.map(({ href, label, icon }) => {
+                  const active = pathname === href || pathname?.startsWith(href)
+                  return (
+                    <NavItem key={href} href={href} label={label} icon={icon} active={!!active} />
+                  )
+                })}
+              </nav>
+            </>
+          )}
         </div>
 
         {/* Bottom user block */}
@@ -380,6 +432,39 @@ export default function ProtectedLayout({ children }: { children: React.ReactNod
           background: '#F7F6F3',
         }}
       >
+        {showBanner && pathname !== '/billing' && (
+          <div
+            style={{
+              background: 'linear-gradient(90deg, #C9A84C 0%, #B89540 100%)',
+              color: '#1D1D1F',
+              padding: '10px 20px',
+              fontSize: '13px',
+              fontWeight: 600,
+              fontFamily: 'DM Sans, sans-serif',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: '14px',
+              flexShrink: 0,
+            }}
+          >
+            <span>{bannerText}</span>
+            <Link
+              href="/billing"
+              style={{
+                background: '#0F0F0E',
+                color: '#fff',
+                padding: '5px 14px',
+                borderRadius: '6px',
+                fontSize: '12px',
+                fontWeight: 600,
+                textDecoration: 'none',
+              }}
+            >
+              Upgrade now →
+            </Link>
+          </div>
+        )}
         {children}
       </main>
     </div>

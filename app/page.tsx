@@ -77,6 +77,22 @@ export default function LandingPage() {
               See how it works
             </a>
           </div>
+
+          {/* Social proof */}
+          <div style={{
+            marginTop: '36px',
+            display: 'inline-flex', alignItems: 'center', gap: '10px',
+            padding: '8px 16px',
+            background: 'rgba(255,255,255,0.06)',
+            border: '1px solid rgba(255,255,255,0.1)',
+            borderRadius: '99px',
+            fontSize: '12.5px',
+            color: 'rgba(255,255,255,0.7)',
+            fontFamily: 'DM Sans, sans-serif',
+          }}>
+            <span style={{ color: '#C9A84C', fontSize: '13px', letterSpacing: '0.5px' }}>★★★★★</span>
+            Built with feedback from 30+ solo attorneys
+          </div>
         </div>
 
         {/* Stats */}

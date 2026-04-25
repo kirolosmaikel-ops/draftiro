@@ -17,7 +17,10 @@ function LoginForm() {
   const searchParams = useSearchParams()
   const urlError = searchParams.get('error')
 
-  const [tab, setTab] = useState<Tab>('magic')
+  // Default to Password — Magic Link requires SMTP and is unreliable until verified.
+  const [tab, setTab] = useState<Tab>('password')
+  const [signupEmail, setSignupEmail] = useState('')
+  const [resendStatus, setResendStatus] = useState<'idle' | 'sending' | 'sent' | 'error'>('idle')
   const [mode, setMode] = useState<Mode>('signin')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
@@ -44,7 +47,7 @@ function LoginForm() {
         return
       }
       if (!data.session) {
-        setError('No session returned. Your email may need confirmation — try the Magic Link tab.')
+        setError('No session returned. If you just signed up, confirm your email first or use /setup to create a confirmed account.')
         setLoading(false)
         return
       }
@@ -78,13 +81,26 @@ function LoginForm() {
         window.location.href = '/dashboard'
         return
       }
-      setSuccessMsg('Account created! Check your email to confirm, then sign in. Or use the Magic Link tab.')
+      // Email confirmation required — capture the email for resend
+      setSignupEmail(email.trim())
+      setSuccessMsg(`Account created! We sent a confirmation link to ${email.trim()}.`)
       setLoading(false)
     } catch (e: unknown) {
       const msg = e instanceof Error ? e.message : 'Something went wrong'
       setError(msg)
       setLoading(false)
     }
+  }
+
+  const handleResendConfirmation = async () => {
+    if (!signupEmail) return
+    setResendStatus('sending')
+    const { error } = await supabase.auth.resend({
+      type: 'signup',
+      email: signupEmail,
+      options: { emailRedirectTo: `${window.location.origin}/auth/callback` },
+    })
+    setResendStatus(error ? 'error' : 'sent')
   }
 
   // ── Magic link ────────────────────────────────────────────────────────────
@@ -324,6 +340,39 @@ function LoginForm() {
               background: '#E8F5EE', color: '#1A7A4A', border: '1px solid #B8E6C8',
             }}>
               ✓ {successMsg}
+              {signupEmail && (
+                <div style={{ marginTop: '10px', display: 'flex', gap: '10px', alignItems: 'center', flexWrap: 'wrap' }}>
+                  <button
+                    type="button"
+                    onClick={handleResendConfirmation}
+                    disabled={resendStatus === 'sending' || resendStatus === 'sent'}
+                    style={{
+                      fontSize: '12px', fontWeight: 700, color: '#1A7A4A',
+                      background: '#fff', border: '1px solid #B8E6C8',
+                      borderRadius: '8px', padding: '5px 12px',
+                      cursor: resendStatus === 'sent' ? 'default' : 'pointer',
+                      fontFamily: 'DM Sans, sans-serif',
+                    }}
+                  >
+                    {resendStatus === 'sending' ? 'Sending…'
+                      : resendStatus === 'sent' ? '✓ Sent again'
+                      : resendStatus === 'error' ? 'Retry resend'
+                      : 'Resend email'}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => { setMode('signin'); setSuccessMsg(''); setSignupEmail(''); setResendStatus('idle') }}
+                    style={{
+                      fontSize: '12px', fontWeight: 700, color: '#1A7A4A',
+                      background: 'none', border: 'none',
+                      cursor: 'pointer', textDecoration: 'underline',
+                      fontFamily: 'DM Sans, sans-serif',
+                    }}
+                  >
+                    Back to sign in
+                  </button>
+                </div>
+              )}
             </div>
           )}
 
