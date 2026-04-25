@@ -31,47 +31,28 @@ function LoginForm() {
 
   const supabase = createClient()
 
-  // ── Shared: commit session server-side then navigate ──────────────────────
-  async function commitAndRedirect(accessToken: string, refreshToken: string) {
-    console.log('[login] committing session server-side…')
-    const res = await fetch('/api/auth/set-session', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ access_token: accessToken, refresh_token: refreshToken }),
-    })
-    if (!res.ok) {
-      const json = await res.json().catch(() => ({})) as { error?: string }
-      throw new Error(json.error ?? 'Failed to establish session')
-    }
-    console.log('[login] session committed, running setup-profile…')
-    await fetch('/api/auth/setup-profile', { method: 'POST' })
-    console.log('[login] redirecting to /dashboard')
-    window.location.href = '/dashboard'
-  }
-
-  // ── Password sign-in ─────────────────────────────────────────────────────
+  // ── Password sign-in (server-side — cookies guaranteed before navigation) ──
   const handleSignIn = async () => {
     setLoading(true)
     setError('')
     setSuccessMsg('')
     try {
-      console.log('[login] handleSignIn for:', email)
-      const { data, error } = await supabase.auth.signInWithPassword({ email, password })
-      if (error) {
-        console.error('[login] signInWithPassword error:', error.message)
-        setError(error.message)
+      const res = await fetch('/api/auth/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: email.trim(), password }),
+      })
+      const json = await res.json() as { ok?: boolean; error?: string }
+      if (!res.ok || !json.ok) {
+        setError(json.error ?? 'Sign in failed. Check your email and password.')
         setLoading(false)
         return
       }
-      if (data.session) {
-        await commitAndRedirect(data.session.access_token, data.session.refresh_token)
-      } else {
-        setError('Sign in succeeded but no session returned. Try the Magic Link tab.')
-        setLoading(false)
-      }
+      // Session cookies are now in the browser (came in the response Set-Cookie headers).
+      // Navigate — middleware will see them immediately.
+      window.location.href = '/dashboard'
     } catch (e: unknown) {
       const msg = e instanceof Error ? e.message : 'Something went wrong'
-      console.error('[login] unexpected error:', msg)
       setError(msg)
       setLoading(false)
     }
@@ -94,12 +75,20 @@ function LoginForm() {
         return
       }
       if (data.session) {
-        await commitAndRedirect(data.session.access_token, data.session.refresh_token)
-      } else {
-        // Email confirmation required — Supabase default
-        setSuccessMsg('Account created! Check your email to confirm, then sign in.')
-        setLoading(false)
+        // Supabase auto-confirmed — commit server-side then navigate
+        const res = await fetch('/api/auth/login', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email: email.trim(), password }),
+        })
+        const json = await res.json() as { ok?: boolean; error?: string }
+        if (res.ok && json.ok) {
+          window.location.href = '/dashboard'
+          return
+        }
       }
+      setSuccessMsg('Account created! Check your email to confirm, then sign in. Or use the Magic Link tab.')
+      setLoading(false)
     } catch (e: unknown) {
       const msg = e instanceof Error ? e.message : 'Something went wrong'
       setError(msg)
