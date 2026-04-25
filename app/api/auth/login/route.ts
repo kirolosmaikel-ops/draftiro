@@ -1,15 +1,18 @@
 import { NextResponse } from 'next/server'
 import { createServerClient } from '@supabase/ssr'
 import { createClient } from '@supabase/supabase-js'
+import { cookies } from 'next/headers'
 import type { CookieOptions } from '@supabase/ssr'
 
 /**
  * POST /api/auth/login
  *
- * Performs signInWithPassword entirely server-side so that the session cookies
- * are written into THIS response's Set-Cookie headers. The browser receives and
- * commits the cookies before JavaScript continues — eliminating the race
- * condition where window.location.href fires before client-side SDK cookies land.
+ * Performs signInWithPassword entirely server-side. Cookies are written via
+ * next/headers cookies() store — Next.js automatically attaches them to the
+ * outgoing response's Set-Cookie headers. Using cookies() (instead of writing
+ * to a NextResponse object directly) is the canonical @supabase/ssr pattern
+ * and avoids a known issue where the SDK's setAll() never fires when the
+ * adapter's getAll() returns an empty array.
  */
 export async function POST(req: Request) {
   let email: string, password: string
@@ -33,19 +36,20 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: 'Supabase is not configured on this server' }, { status: 500 })
   }
 
-  // Build the success response first so we can attach Set-Cookie to it
-  const response = NextResponse.json({ ok: true })
+  const cookieStore = await cookies()
 
-  // Create a server-side Supabase client whose cookie writes go directly
-  // onto the response's Set-Cookie headers
+  // Use the cookies() store from next/headers — writes go to the response
+  // Set-Cookie headers automatically. Read the *current* cookies (don't lie
+  // with []) so the SDK's diffing logic correctly detects the new session and
+  // calls setAll() with the access + refresh tokens.
   const supabase = createServerClient(supabaseUrl, anonKey, {
     cookies: {
       getAll() {
-        return []
+        return cookieStore.getAll()
       },
       setAll(cookiesToSet: { name: string; value: string; options?: CookieOptions }[]) {
         cookiesToSet.forEach(({ name, value, options }) => {
-          response.cookies.set(name, value, options ?? {})
+          cookieStore.set(name, value, options)
         })
       },
     },
@@ -60,7 +64,7 @@ export async function POST(req: Request) {
 
   if (!data.session) {
     return NextResponse.json(
-      { error: 'No session returned — your email may need confirmation. Use Magic Link instead.' },
+      { error: 'No session returned — your email may need confirmation. Visit /setup to create a confirmed account.' },
       { status: 401 }
     )
   }
@@ -106,5 +110,5 @@ export async function POST(req: Request) {
     }
   }
 
-  return response
+  return NextResponse.json({ ok: true })
 }
