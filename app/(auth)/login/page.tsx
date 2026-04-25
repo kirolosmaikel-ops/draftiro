@@ -34,28 +34,31 @@ function LoginForm() {
 
   const supabase = createClient()
 
-  // ── Password sign-in ─────────────────────────────────────────────────────
+  // ── Password sign-in (server-side via /api/auth/login) ──────────────────
+  // Why server-side: client SDK writes cookies via document.cookie, which can
+  // race with window.location.href. The /api/auth/login route writes Set-Cookie
+  // headers — the browser commits them BEFORE the next navigation, eliminating
+  // the redirect-loop where /dashboard sees no session and bounces to /login.
   const handleSignIn = async () => {
     setLoading(true)
     setError('')
     setSuccessMsg('')
     try {
-      const { data, error } = await supabase.auth.signInWithPassword({ email: email.trim(), password })
-      if (error) {
-        setError(error.message)
+      const res = await fetch('/api/auth/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: email.trim(), password }),
+      })
+      const json = await res.json().catch(() => ({}))
+      if (!res.ok) {
+        setError(json.error ?? `Sign in failed (${res.status})`)
         setLoading(false)
         return
       }
-      if (!data.session) {
-        setError('No session returned. If you just signed up, confirm your email first or use /setup to create a confirmed account.')
-        setLoading(false)
-        return
-      }
-      // Session is now in browser cookies. Middleware uses getSession() (local JWT
-      // validation — no network call), so it will see the session immediately.
+      // Cookies are now committed in this response's Set-Cookie headers.
       window.location.href = '/dashboard'
     } catch (e: unknown) {
-      const msg = e instanceof Error ? e.message : 'Something went wrong'
+      const msg = e instanceof Error ? e.message : 'Network error — please try again.'
       setError(msg)
       setLoading(false)
     }
