@@ -2,6 +2,15 @@
 
 import { useEffect, useRef, useState } from 'react'
 import { createClient } from '@/lib/supabase/client'
+import DOMPurify from 'isomorphic-dompurify'
+
+// Stored-XSS hardening for the contentEditable HTML. Whitelists common rich-text
+// tags + class/style/href, strips <script>, on*-handlers, javascript: URLs etc.
+const ALLOWED_TAGS = ['p','br','b','i','u','strong','em','h1','h2','h3','h4','ul','ol','li','blockquote','code','pre','span','div','a']
+const ALLOWED_ATTR = ['href','title','class','style']
+function sanitizeHtml(html: string): string {
+  return DOMPurify.sanitize(html, { ALLOWED_TAGS, ALLOWED_ATTR })
+}
 
 // ── Types ──────────────────────────────────────────────────────────────────
 
@@ -27,7 +36,13 @@ const SAMPLE_CONTENT = `<p>Start writing your draft here…</p>`
 export default function EditorPage() {
   const supabase = createClient()
   const editorRef = useRef<HTMLDivElement>(null)
-  const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
+  // Separate timers per-field so a fast typer changing title then content
+  // doesn't lose the title's pending save. Both eventually call saveDraft
+  // which reads from the latest-value refs below.
+  const titleSaveTimer   = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const contentSaveTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const titleRef   = useRef('Untitled Document')
+  const contentRef = useRef('')
 
   // State
   const [drafts, setDrafts] = useState<Draft[]>([])
@@ -73,9 +88,13 @@ export default function EditorPage() {
     setActiveDraft(d)
     setTitle(d.title)
     setContent(d.content)
+    titleRef.current = d.title
+    contentRef.current = d.content
     setSaveStatus('idle')
     if (editorRef.current) {
-      editorRef.current.innerHTML = d.content || SAMPLE_CONTENT
+      // Sanitize stored HTML before mounting it as innerHTML — closes the
+      // stored-XSS vector where saved <img onerror=...> would execute on load.
+      editorRef.current.innerHTML = sanitizeHtml(d.content || SAMPLE_CONTENT)
     }
   }
 
@@ -85,26 +104,33 @@ export default function EditorPage() {
     setActiveDraft(null)
     setTitle('Untitled Document')
     setContent('')
+    titleRef.current = 'Untitled Document'
+    contentRef.current = ''
     setSaveStatus('idle')
     if (editorRef.current) {
-      editorRef.current.innerHTML = SAMPLE_CONTENT
+      editorRef.current.innerHTML = sanitizeHtml(SAMPLE_CONTENT)
     }
   }
 
   // ── Handle content change (debounce 2s auto-save) ────────────────────────
 
   function handleContentChange(val: string) {
+    // Sanitize on every keystroke is overkill; we sanitize at save time
+    // (saveDraft) and on load (openDraft). Keep raw value in state so the
+    // user's typing doesn't visibly mutate.
     setContent(val)
+    contentRef.current = val
     setSaveStatus('idle')
-    if (saveTimer.current) clearTimeout(saveTimer.current)
-    saveTimer.current = setTimeout(() => saveDraft(val, title), 2000)
+    if (contentSaveTimer.current) clearTimeout(contentSaveTimer.current)
+    contentSaveTimer.current = setTimeout(() => saveDraft(contentRef.current, titleRef.current), 2000)
   }
 
   function handleTitleChange(val: string) {
     setTitle(val)
+    titleRef.current = val
     setSaveStatus('idle')
-    if (saveTimer.current) clearTimeout(saveTimer.current)
-    saveTimer.current = setTimeout(() => saveDraft(content, val), 2000)
+    if (titleSaveTimer.current) clearTimeout(titleSaveTimer.current)
+    titleSaveTimer.current = setTimeout(() => saveDraft(contentRef.current, titleRef.current), 2000)
   }
 
   // ── Save draft ───────────────────────────────────────────────────────────
@@ -114,6 +140,12 @@ export default function EditorPage() {
     try {
       const { data: { session } } = await supabase.auth.getSession()
       if (!session?.user) { setSaveStatus('error'); return }
+      // Sanitize HTML at the boundary — strips scripts, on* handlers, javascript:
+      // URLs etc. Closes the stored-XSS vector where saved content was loaded
+      // back into innerHTML on a future visit.
+      const cleanBody = sanitizeHtml(body)
+      // Trim title to a sane size; the API also enforces a hard cap.
+      const cleanTitle = (t ?? '').slice(0, 200)
       const headers: Record<string, string> = {
         'Content-Type': 'application/json',
         Authorization: `Bearer ${session.access_token}`,
@@ -123,11 +155,11 @@ export default function EditorPage() {
         await fetch('/api/editor/save', {
           method: 'POST',
           headers,
-          body: JSON.stringify({ id: activeDraft.id, title: t, content: body }),
+          body: JSON.stringify({ id: activeDraft.id, title: cleanTitle, content: cleanBody }),
         })
         setDrafts(prev =>
           prev.map(d => d.id === activeDraft.id
-            ? { ...d, title: t, content: body, updated_at: new Date().toISOString() }
+            ? { ...d, title: cleanTitle, content: cleanBody, updated_at: new Date().toISOString() }
             : d
           )
         )
@@ -135,16 +167,19 @@ export default function EditorPage() {
         const res = await fetch('/api/editor/save', {
           method: 'POST',
           headers,
-          body: JSON.stringify({ title: t, content: body }),
+          body: JSON.stringify({ title: cleanTitle, content: cleanBody }),
         })
         const json = await res.json()
         if (json.id) {
-          const newD: Draft = { id: json.id, title: t, content: body, updated_at: new Date().toISOString() }
+          const newD: Draft = { id: json.id, title: cleanTitle, content: cleanBody, updated_at: new Date().toISOString() }
           setActiveDraft(newD)
           setDrafts(prev => [newD, ...prev])
         }
       }
       setSaveStatus('saved')
+      // Hold the 'Saved' indicator long enough for the user to actually see
+      // it before reverting to idle on next keystroke.
+      setTimeout(() => setSaveStatus(s => s === 'saved' ? 'idle' : s), 2500)
     } catch {
       setSaveStatus('error')
     }
@@ -387,7 +422,7 @@ export default function EditorPage() {
                   <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5">
                     <rect x="2" y="1" width="9" height="14" rx="1" /><path d="M11 4h3l-3 4h3" />
                   </svg>
-                  Export as .docx
+                  Export as plain .docx
                 </div>
                 {/* PDF export — hidden until backend is implemented */}
               </div>

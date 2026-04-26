@@ -314,44 +314,61 @@ export async function POST(req: Request) {
   const chunks = rawChunks.filter(c => c.length > 50)  // skip near-empty chunks
   log('[upload] ✓ chunked into', chunks.length, 'chunks')
 
-  // ── 7. Embed chunks via OpenAI ─────────────────────────────────────────
+  // ── 7. Embed chunks via OpenAI (parallel batches) ──────────────────────
+  // Batches are independent so we run them concurrently. For a 50-page PDF
+  // (~80 chunks at 4 batches), this turns ~4s of serial waits into ~1s.
   const BATCH = 20
-  const allEmbeddings: number[][] = []
-  log('[upload] embedding', chunks.length, 'chunks in batches of', BATCH)
+  const PARALLEL = 4 // concurrency cap so we don't blow OpenAI rate limits
+  log('[upload] embedding', chunks.length, 'chunks (batch', BATCH, 'concurrency', PARALLEL, ')')
 
-  for (let i = 0; i < chunks.length; i += BATCH) {
-    const batch = chunks.slice(i, i + BATCH)
-    const embRes = await fetch('https://api.openai.com/v1/embeddings', {
-      method: 'POST',
-      headers: {
-        Authorization: `Bearer ${process.env.OPENAI_API_KEY}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({ model: 'text-embedding-3-small', input: batch }),
-    })
+  const batchInputs: string[][] = []
+  for (let i = 0; i < chunks.length; i += BATCH) batchInputs.push(chunks.slice(i, i + BATCH))
 
-    if (!embRes.ok) {
-      const errText = await embRes.text()
-      logError('[upload] ✗ OpenAI embedding failed:', embRes.status, errText)
+  const batchResults: number[][][] = new Array(batchInputs.length)
+  for (let p = 0; p < batchInputs.length; p += PARALLEL) {
+    const slice = batchInputs.slice(p, p + PARALLEL)
+    const embedded = await Promise.all(slice.map(async (batch, idx) => {
+      const embRes = await fetch('https://api.openai.com/v1/embeddings', {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${process.env.OPENAI_API_KEY}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ model: 'text-embedding-3-small', input: batch }),
+      })
+      if (!embRes.ok) {
+        const errText = await embRes.text()
+        throw new Error(`OpenAI embedding batch ${p + idx}: ${embRes.status} ${errText.slice(0, 200)}`)
+      }
+      const embJson = await embRes.json() as { data: { embedding: number[] }[] }
+      return embJson.data.map(d => d.embedding)
+    })).catch(async err => {
+      logError('[upload] ✗ OpenAI embedding failed:', err)
       await supabase.from('documents').update({
         status: 'error',
-        error_message: `Embedding failed (batch ${i / BATCH}): ${errText.slice(0, 200)}`,
+        error_message: `Embedding failed: ${String(err).slice(0, 200)}`,
       }).eq('id', documentId)
-      return NextResponse.json({ error: `Embedding failed: ${errText.slice(0, 200)}` }, { status: 500 })
+      return null
+    })
+    if (!embedded) {
+      return NextResponse.json({ error: 'Embedding failed — see Vercel logs' }, { status: 500 })
     }
-
-    const embJson = await embRes.json() as { data: { embedding: number[] }[] }
-    allEmbeddings.push(...embJson.data.map(d => d.embedding))
-    log('[upload] embedded batch', Math.floor(i / BATCH) + 1, '— total so far:', allEmbeddings.length)
+    embedded.forEach((v, idx) => { batchResults[p + idx] = v })
   }
+  const allEmbeddings: number[][] = batchResults.flat()
+  log('[upload] ✓ embedded', allEmbeddings.length, 'chunks')
 
   // ── 8. Insert document_chunks ──────────────────────────────────────────
+  // Guard pageCount: LlamaParse can return null/0; coerce to at least 1 so
+  // page-number math never produces NaN.
+  const safePageCount = Math.max(1, Number(pageCount) || 1)
+  const safeChunkCount = Math.max(1, chunks.length)
   const chunkRows = chunks.map((text, i) => ({
     document_id: documentId,
     firm_id: firmId,
     content: text,
     chunk_index: i,
-    page_number: Math.max(1, Math.floor((i / Math.max(1, chunks.length)) * pageCount) + 1),
+    page_number: Math.max(1, Math.floor((i / safeChunkCount) * safePageCount) + 1),
     embedding: allEmbeddings[i],  // pgvector accepts array directly
   }))
 

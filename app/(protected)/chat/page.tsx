@@ -1,10 +1,28 @@
 'use client'
 
-import { Suspense, useEffect, useRef, useState, useCallback } from 'react'
+import { Suspense, useEffect, useRef, useState, useCallback, memo } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { useSearchParams } from 'next/navigation'
 import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
+
+// Memoized markdown renderer.
+// react-markdown re-parses the entire string on every prop change — when a
+// chat reply is streaming, that's hundreds of re-parses per response. We
+// memoize on content equality so React only re-renders when content really
+// changes; combined with the auto-scroll change, this keeps the DOM cheap.
+//
+// Note: react-markdown blocks raw HTML by default. DO NOT add `rehype-raw`
+// or `skipHtml={false}` here without first sanitizing with DOMPurify — that
+// would re-introduce a stored-XSS vector via assistant output that mirrors
+// user input.
+const AssistantMarkdown = memo(function AssistantMarkdown({ content }: { content: string }) {
+  return (
+    <div className="md-content">
+      <ReactMarkdown remarkPlugins={[remarkGfm]}>{content}</ReactMarkdown>
+    </div>
+  )
+})
 
 // ── Types ──────────────────────────────────────────────────────────────────
 interface Msg {
@@ -72,11 +90,13 @@ function ChatPageInner() {
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const abortRef = useRef<AbortController | null>(null)
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null)
+  const sessionWasNewRef = useRef(false)
 
   // Session list (left rail)
   type SessionRow = { id: string; title: string | null; case_id: string | null; document_id: string | null; updated_at: string }
   const [sessions, setSessions] = useState<SessionRow[]>([])
   const [showSessions, setShowSessions] = useState(true)
+  const [historyError, setHistoryError] = useState('')
 
   // ── Load cases ────────────────────────────────────────────────────────────
   useEffect(() => {
@@ -101,22 +121,33 @@ function ChatPageInner() {
 
   // ── Load message history when sessionId changes (URL-driven) ───────────
   useEffect(() => {
-    if (!sessionId) { setMessages([]); return }
+    if (!sessionId) { setMessages([]); setHistoryError(''); return }
     (async () => {
-      const { data: { session } } = await supabase.auth.getSession()
-      const headers: Record<string, string> = {}
-      if (session?.access_token) headers.Authorization = `Bearer ${session.access_token}`
-      const res = await fetch(`/api/chat/query?sessionId=${sessionId}`, { headers })
-      if (!res.ok) return
-      const json = await res.json() as { messages: { id: string; role: string; content: string; citations?: Citation[] }[] }
-      setMessages(
-        (json.messages ?? []).map(m => ({
-          id: m.id,
-          role: m.role as 'user' | 'assistant',
-          content: m.content,
-          citations: m.citations,
-        }))
-      )
+      setHistoryError('')
+      try {
+        const { data: { session } } = await supabase.auth.getSession()
+        const headers: Record<string, string> = {}
+        if (session?.access_token) headers.Authorization = `Bearer ${session.access_token}`
+        const res = await fetch(`/api/chat/query?sessionId=${sessionId}`, { headers })
+        if (!res.ok) {
+          const j = await res.json().catch(() => ({}))
+          setHistoryError(j.error ?? `Could not load conversation (${res.status}).`)
+          setMessages([])
+          return
+        }
+        const json = await res.json() as { messages: { id: string; role: string; content: string; citations?: Citation[] }[] }
+        setMessages(
+          (json.messages ?? []).map(m => ({
+            id: m.id,
+            role: m.role as 'user' | 'assistant',
+            content: m.content,
+            citations: m.citations,
+          }))
+        )
+      } catch (e: unknown) {
+        setHistoryError(e instanceof Error ? e.message : 'Network error loading conversation.')
+        setMessages([])
+      }
     })()
   }, [sessionId]) // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -157,9 +188,17 @@ function ChatPageInner() {
   }, [selectedDoc, docs]) // eslint-disable-line react-hooks/exhaustive-deps
 
   // ── Scroll to bottom on new message ──────────────────────────────────────
+  // Use 'auto' (instant) while a response is streaming — 'smooth' triggers
+  // an animation per token that constantly cancels and restarts, causing
+  // jank. Switch to 'smooth' only when streaming finishes.
   useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
-  }, [messages])
+    messagesEndRef.current?.scrollIntoView({
+      behavior: streaming ? 'auto' : 'smooth',
+    })
+  }, [messages, streaming])
+
+  // ── Abort any in-flight stream on unmount / nav-away ────────────────────
+  useEffect(() => () => { abortRef.current?.abort() }, [])
 
   // ── Close dropdowns on outside click ─────────────────────────────────────
   useEffect(() => {
@@ -186,6 +225,7 @@ function ChatPageInner() {
     }).select('id').single()
     if (error || !data) return null
     setSessionId(data.id)
+    sessionWasNewRef.current = true
     window.history.replaceState(null, '', `/chat?session=${data.id}`)
     return data.id
   }
@@ -298,8 +338,13 @@ function ChatPageInner() {
       }
     } finally {
       setStreaming(false)
-      // Refresh session list (a new session may have been created; updated_at moved)
-      refreshSessions()
+      // Refresh session list ONLY if a new session was just created
+      // (otherwise the list order didn't change in any user-visible way).
+      // wasNewSession is set inside ensureSession when the insert succeeds.
+      if (sessionWasNewRef.current) {
+        sessionWasNewRef.current = false
+        refreshSessions()
+      }
     }
   }, [input, streaming, selectedDoc, selectedCase, sessionId]) // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -690,6 +735,15 @@ function ChatPageInner() {
 
           {/* Messages area */}
           <div style={{ flex: 1, overflowY: 'auto', padding: '20px' }}>
+            {historyError && (
+              <div style={{
+                padding: '10px 14px', borderRadius: '10px', marginBottom: '14px',
+                background: '#FFE8E6', color: '#A0281A', border: '1px solid #FFBDBA',
+                fontSize: '13px', fontFamily: "'DM Sans', sans-serif",
+              }}>
+                ⚠ {historyError}
+              </div>
+            )}
             {/* Welcome message */}
             {messages.length === 0 && (
               <div style={{ display: 'flex', gap: '10px', marginBottom: '20px' }}>
@@ -750,9 +804,7 @@ function ChatPageInner() {
                       ))}
                     </span>
                   ) : msg.role === 'assistant' ? (
-                    <div className="md-content">
-                      <ReactMarkdown remarkPlugins={[remarkGfm]}>{msg.content}</ReactMarkdown>
-                    </div>
+                    <AssistantMarkdown content={msg.content} />
                   ) : (
                     msg.content
                   )}
@@ -803,24 +855,44 @@ function ChatPageInner() {
                   resize: 'none', minHeight: '20px', maxHeight: '80px',
                 }}
               />
-              <button
-                onClick={sendMessage}
-                disabled={!input.trim() || streaming}
-                title="Send (Enter)"
-                style={{
-                  width: '36px', height: '36px',
-                  background: input.trim() && !streaming ? '#0F0F0E' : '#C8C8C4',
-                  border: 'none',
-                  borderRadius: rMd, display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  cursor: input.trim() && !streaming ? 'pointer' : 'not-allowed',
-                  flexShrink: 0,
-                  transition: 'background 0.15s ease',
-                }}
-              >
-                <svg viewBox="0 0 16 16" fill="none" stroke="white" strokeWidth="2" width="15" height="15">
-                  <path d="M2 8h12M8 2l6 6-6 6" />
-                </svg>
-              </button>
+              {streaming ? (
+                <button
+                  onClick={() => abortRef.current?.abort()}
+                  title="Stop generating"
+                  style={{
+                    width: '36px', height: '36px',
+                    background: '#A0281A',
+                    border: 'none',
+                    borderRadius: rMd, display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    cursor: 'pointer',
+                    flexShrink: 0,
+                    transition: 'background 0.15s ease',
+                  }}
+                >
+                  <svg viewBox="0 0 16 16" fill="white" width="13" height="13">
+                    <rect x="3" y="3" width="10" height="10" rx="1.5" />
+                  </svg>
+                </button>
+              ) : (
+                <button
+                  onClick={sendMessage}
+                  disabled={!input.trim()}
+                  title="Send (Enter)"
+                  style={{
+                    width: '36px', height: '36px',
+                    background: input.trim() ? '#0F0F0E' : '#C8C8C4',
+                    border: 'none',
+                    borderRadius: rMd, display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    cursor: input.trim() ? 'pointer' : 'not-allowed',
+                    flexShrink: 0,
+                    transition: 'background 0.15s ease',
+                  }}
+                >
+                  <svg viewBox="0 0 16 16" fill="none" stroke="white" strokeWidth="2" width="15" height="15">
+                    <path d="M2 8h12M8 2l6 6-6 6" />
+                  </svg>
+                </button>
+              )}
             </div>
           </div>
         </div>

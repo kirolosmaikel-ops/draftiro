@@ -11,6 +11,14 @@ export async function POST(req: Request) {
   const body = await req.json() as { id?: string; title: string; content: string; caseId?: string }
   const { id, title, content, caseId } = body
 
+  // Hard size caps — stops accidental megapaste / DoS / runaway clipboard.
+  if (typeof content !== 'string' || content.length > 1_000_000) {
+    return NextResponse.json({ error: 'Draft content exceeds 1 MB. Trim before saving.' }, { status: 413 })
+  }
+  if (typeof title !== 'string' || title.length > 200) {
+    return NextResponse.json({ error: 'Title must be 200 characters or less.' }, { status: 400 })
+  }
+
   // Bearer first (deterministic), cookies as fallback (cookies can hang)
   let user: { id: string; email?: string } | null = null
   const authHeader = req.headers.get('authorization') ?? ''
