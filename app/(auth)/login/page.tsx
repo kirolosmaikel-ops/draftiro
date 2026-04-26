@@ -251,7 +251,7 @@ function LoginForm() {
         </div>
 
         <div style={{ display: 'flex', gap: '36px', flexWrap: 'wrap' }}>
-          {[['40%', 'Less research time'], ['38', 'States covered'], ['SOC2', 'Type II']].map(([num, label]) => (
+          {[['40%', 'Less research time'], ['38', 'States covered'], ['256-bit', 'Encryption']].map(([num, label]) => (
             <div key={label}>
               <div style={{ fontFamily: 'Newsreader, serif', fontSize: '26px', fontWeight: 700, color: '#fff' }}>{num}</div>
               <div style={{ fontSize: '10px', fontWeight: 700, color: 'rgba(255,255,255,0.35)', textTransform: 'uppercase', letterSpacing: '0.1em', marginTop: '4px' }}>{label}</div>

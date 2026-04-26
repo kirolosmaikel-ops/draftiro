@@ -215,41 +215,50 @@ export default function KnowledgePage() {
     setSummaryLoading(false)
   }
 
-  // ── Upload document ──────────────────────────────────────────────────────
+  // ── Upload document(s) — supports multi-file + drag/drop ────────────────
 
-  async function handleUpload(e: React.ChangeEvent<HTMLInputElement>) {
-    const file = e.target.files?.[0]
-    if (!file || !selectedClient) return
+  async function uploadFiles(files: FileList | File[]) {
+    if (!selectedClient || files.length === 0) return
     setUploading(true)
     setUploadError('')
-    try {
-      const form = new FormData()
-      form.append('file', file)
-      form.append('clientId', selectedClient.id)
-      if (uploadCaseId) form.append('caseId', uploadCaseId)
-      // Send the access token explicitly (cookie auth has been unreliable)
-      const { data: { session } } = await supabase.auth.getSession()
-      const res = await fetch('/api/documents/upload', {
-        method: 'POST',
-        body: form,
-        headers: session?.access_token ? { Authorization: `Bearer ${session.access_token}` } : undefined,
-      })
-      if (!res.ok) {
-        const j = await res.json().catch(() => ({}))
-        setUploadError(j.error ?? `Upload failed (${res.status})`)
+    const { data: { session } } = await supabase.auth.getSession()
+    const headers = session?.access_token ? { Authorization: `Bearer ${session.access_token}` } : undefined
+
+    const errors: string[] = []
+    for (const file of Array.from(files)) {
+      try {
+        const form = new FormData()
+        form.append('file', file)
+        form.append('clientId', selectedClient.id)
+        if (uploadCaseId) form.append('caseId', uploadCaseId)
+        const res = await fetch('/api/documents/upload', { method: 'POST', body: form, headers })
+        if (!res.ok) {
+          const j = await res.json().catch(() => ({}))
+          errors.push(`${file.name}: ${j.error ?? `failed (${res.status})`}`)
+        }
+      } catch (err) {
+        errors.push(`${file.name}: ${err instanceof Error ? err.message : 'failed'}`)
       }
-      const { data } = await supabase
-        .from('documents')
-        .select('id,name,mime_type,size_bytes,status,created_at')
-        .eq('client_id', selectedClient.id)
-        .order('created_at', { ascending: false })
-      setDocs(data ?? [])
-    } catch (err) {
-      setUploadError(err instanceof Error ? err.message : 'Upload failed')
     }
+    // Refresh docs list
+    const { data } = await supabase
+      .from('documents')
+      .select('id,name,mime_type,size_bytes,status,created_at')
+      .eq('client_id', selectedClient.id)
+      .order('created_at', { ascending: false })
+    setDocs(data ?? [])
+    if (errors.length > 0) setUploadError(errors.join(' · '))
     setUploading(false)
+  }
+
+  async function handleUpload(e: React.ChangeEvent<HTMLInputElement>) {
+    if (!e.target.files) return
+    await uploadFiles(e.target.files)
     e.target.value = ''
   }
+
+  // Drag-drop state for the documents tab area
+  const [isDragOver, setIsDragOver] = useState(false)
 
   // ── Create client ────────────────────────────────────────────────────────
 
@@ -625,6 +634,7 @@ export default function KnowledgePage() {
                   <input
                     type="file"
                     accept=".pdf,.docx,.txt"
+                    multiple
                     style={{ display: 'none' }}
                     onChange={handleUpload}
                     disabled={uploading}
@@ -713,8 +723,41 @@ export default function KnowledgePage() {
                 })}
               </div>
 
-              {/* Tab body */}
-              <div style={{ flex: 1, overflowY: 'auto', padding: '20px 24px' }}>
+              {/* Tab body — drag/drop receives files anywhere on the page body */}
+              <div
+                style={{ flex: 1, overflowY: 'auto', padding: '20px 24px', position: 'relative' }}
+                onDragOver={e => {
+                  if (tab !== 'documents') return
+                  e.preventDefault()
+                  setIsDragOver(true)
+                }}
+                onDragLeave={e => {
+                  if (e.currentTarget === e.target) setIsDragOver(false)
+                }}
+                onDrop={e => {
+                  e.preventDefault()
+                  setIsDragOver(false)
+                  if (tab !== 'documents') return
+                  if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
+                    uploadFiles(e.dataTransfer.files)
+                  }
+                }}
+              >
+                {/* Drag overlay */}
+                {isDragOver && tab === 'documents' && (
+                  <div style={{
+                    position: 'absolute', inset: '12px',
+                    background: 'rgba(201,168,76,0.12)',
+                    border: '2px dashed #C9A84C',
+                    borderRadius: '14px',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    fontSize: '14px', fontWeight: 600, color: '#8B6914',
+                    pointerEvents: 'none', zIndex: 5,
+                    fontFamily: "'DM Sans', sans-serif",
+                  }}>
+                    📄 Drop to upload
+                  </div>
+                )}
 
                 {uploadError && (
                   <div style={{
@@ -729,8 +772,22 @@ export default function KnowledgePage() {
                 {/* Documents tab */}
                 {tab === 'documents' && (
                   docs.length === 0 ? (
-                    <div style={{ textAlign: 'center', padding: '48px 0', color: '#9A9A96', fontSize: '13.5px' }}>
-                      No documents yet. Upload one above.
+                    <div style={{
+                      textAlign: 'center',
+                      padding: '60px 24px',
+                      border: '2px dashed rgba(0,0,0,0.10)',
+                      borderRadius: '14px',
+                      color: '#6B6B68',
+                      fontFamily: "'DM Sans', sans-serif",
+                    }}>
+                      <div style={{ fontSize: '32px', marginBottom: '10px', lineHeight: 1 }}>📂</div>
+                      <div style={{ fontSize: '14.5px', fontWeight: 600, color: '#0F0F0E', marginBottom: '4px' }}>
+                        No documents yet
+                      </div>
+                      <div style={{ fontSize: '13px', lineHeight: 1.55, marginBottom: '14px' }}>
+                        Drag &amp; drop files here, or use the <strong>↑ Upload</strong> button above.<br />
+                        Supports PDF, DOCX, TXT.
+                      </div>
                     </div>
                   ) : (
                     docs.map(d => {

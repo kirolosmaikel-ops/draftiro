@@ -248,7 +248,7 @@ function PricingContent() {
       <div style={{ background: '#F7F6F3', borderTop: '1px solid rgba(0,0,0,0.06)', padding: '48px', textAlign: 'center' }}>
         <div style={{ maxWidth: '640px', margin: '0 auto', display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '32px' }}>
           {[
-            { icon: '🔒', title: 'SOC 2 Type II', desc: 'Your data is encrypted at rest and in transit.' },
+            { icon: '🔒', title: 'Encrypted end-to-end', desc: 'Your data is encrypted at rest and in transit; hosted on SOC 2 audited infrastructure.' },
             { icon: '↩', title: 'Cancel Anytime', desc: 'No long-term contracts. Cancel from your billing page.' },
             { icon: '⚖️', title: 'Not Legal Advice', desc: 'AI outputs are for research only — always verify with licensed counsel.' },
           ].map(item => (

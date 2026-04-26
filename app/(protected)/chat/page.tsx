@@ -24,12 +24,58 @@ const AssistantMarkdown = memo(function AssistantMarkdown({ content }: { content
   )
 })
 
+// Suggested follow-up prompts after the first assistant turn. Inspired by
+// Perplexity / Claude.ai. Adapt copy to whether a case/doc is in context.
+function makeSuggestions({ caseTitle, hasDoc }: { caseTitle?: string; hasDoc: boolean }): string[] {
+  if (hasDoc) {
+    return [
+      'Summarize the key facts in 5 bullets',
+      'What are the strongest arguments here?',
+      'Find any potential weaknesses or counterarguments',
+    ]
+  }
+  if (caseTitle) {
+    return [
+      `What's the typical statute of limitations for ${caseTitle}?`,
+      'Draft an opening letter to opposing counsel',
+      'List discovery requests I should serve',
+    ]
+  }
+  return [
+    'What\'s the difference between motion to dismiss and motion for summary judgment?',
+    'Draft a standard NDA between two corporations',
+    'Explain the elements of breach of contract in plain English',
+  ]
+}
+
+// Inline kbd hint style used in chat input footer.
+const kbdStyle: React.CSSProperties = {
+  background: 'rgba(0,0,0,0.04)',
+  border: '1px solid rgba(0,0,0,0.08)',
+  borderRadius: '4px',
+  padding: '0 4px',
+  fontSize: '10px',
+  fontFamily: "'DM Sans', sans-serif",
+  color: '#6B6B68',
+}
+
+// Format a chat bubble timestamp (e.g. 4:31 PM, or "Yesterday").
+function formatMsgTime(iso?: string): string {
+  if (!iso) return ''
+  const d = new Date(iso)
+  const sameDay = d.toDateString() === new Date().toDateString()
+  return sameDay
+    ? d.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })
+    : d.toLocaleDateString([], { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' })
+}
+
 // ── Types ──────────────────────────────────────────────────────────────────
 interface Msg {
   id: string
   role: 'user' | 'assistant'
   content: string
   citations?: Citation[]
+  createdAt?: string
 }
 interface Citation {
   page: number
@@ -71,6 +117,7 @@ function ChatPageInner() {
   const initialCaseId = searchParams.get('case')
   const initialDocId = searchParams.get('doc')
   const initialSessionId = searchParams.get('session')
+  const initialPrompt = searchParams.get('prompt')
 
   // State
   const [cases, setCases] = useState<CaseRow[]>([])
@@ -88,6 +135,7 @@ function ChatPageInner() {
   const [currentPage, setCurrentPage] = useState(1)
 
   const messagesEndRef = useRef<HTMLDivElement>(null)
+  const inputRef = useRef<HTMLTextAreaElement>(null)
   const abortRef = useRef<AbortController | null>(null)
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null)
   const sessionWasNewRef = useRef(false)
@@ -97,6 +145,9 @@ function ChatPageInner() {
   const [sessions, setSessions] = useState<SessionRow[]>([])
   const [showSessions, setShowSessions] = useState(true)
   const [historyError, setHistoryError] = useState('')
+  type StreamPhase = 'idle' | 'searching' | 'reading' | 'drafting'
+  const [streamPhase, setStreamPhase] = useState<StreamPhase>('idle')
+  const [suggestedPrompts, setSuggestedPrompts] = useState<string[]>([])
 
   // ── Load cases ────────────────────────────────────────────────────────────
   useEffect(() => {
@@ -200,6 +251,19 @@ function ChatPageInner() {
   // ── Abort any in-flight stream on unmount / nav-away ────────────────────
   useEffect(() => () => { abortRef.current?.abort() }, [])
 
+  // ── Auto-send a `?prompt=` arrived from the dashboard quick-chat input ──
+  const promptFiredRef = useRef(false)
+  useEffect(() => {
+    if (promptFiredRef.current) return
+    if (!initialPrompt) return
+    promptFiredRef.current = true
+    setInput(initialPrompt)
+    // Drop the param from the URL so a refresh doesn't re-fire it
+    window.history.replaceState(null, '', '/chat')
+    setTimeout(() => sendMessage(), 50)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [initialPrompt])
+
   // ── Close dropdowns on outside click ─────────────────────────────────────
   // Use 'click' (not 'mousedown') so React's onClick on the dropdown items
   // fires FIRST in the bubble path. Previously the document mousedown handler
@@ -269,13 +333,16 @@ function ChatPageInner() {
     if (!text || streaming) return
     setInput('')
 
-    const userMsg: Msg = { id: crypto.randomUUID(), role: 'user', content: text }
+    const now = new Date().toISOString()
+    const userMsg: Msg = { id: crypto.randomUUID(), role: 'user', content: text, createdAt: now }
     setMessages(prev => [...prev, userMsg])
     setStreaming(true)
+    setStreamPhase('searching')
+    setSuggestedPrompts([])
 
     const sid = await ensureSession()
     const assistantId = crypto.randomUUID()
-    setMessages(prev => [...prev, { id: assistantId, role: 'assistant', content: '' }])
+    setMessages(prev => [...prev, { id: assistantId, role: 'assistant', content: '', createdAt: new Date().toISOString() }])
 
     try {
       abortRef.current = new AbortController()
@@ -323,6 +390,7 @@ function ChatPageInner() {
             try {
               const parsed = JSON.parse(raw)
               if (parsed.type === 'text') {
+                if (fullText.length === 0) setStreamPhase('drafting')
                 fullText += parsed.content
                 setMessages(prev => prev.map(m => m.id === assistantId ? { ...m, content: fullText } : m))
               } else if (parsed.type === 'citations') {
@@ -342,6 +410,7 @@ function ChatPageInner() {
       }
     } finally {
       setStreaming(false)
+      setStreamPhase('idle')
       // Refresh session list ONLY if a new session was just created
       // (otherwise the list order didn't change in any user-visible way).
       // wasNewSession is set inside ensureSession when the insert succeeds.
@@ -349,11 +418,37 @@ function ChatPageInner() {
         sessionWasNewRef.current = false
         refreshSessions()
       }
+      // Generate suggested follow-ups after the first assistant turn (no doc
+      // dependency — these are general legal-AI prompts that map to the
+      // current case if any).
+      setSuggestedPrompts(makeSuggestions({
+        caseTitle: cases.find(c => c.id === selectedCase)?.title,
+        hasDoc: !!selectedDoc,
+      }))
     }
-  }, [input, streaming, selectedDoc, selectedCase, sessionId]) // eslint-disable-line react-hooks/exhaustive-deps
+  }, [input, streaming, selectedDoc, selectedCase, sessionId, cases]) // eslint-disable-line react-hooks/exhaustive-deps
 
   function handleKey(e: React.KeyboardEvent) {
     if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMessage() }
+    if (e.key === 'Escape' && streaming) { e.preventDefault(); abortRef.current?.abort() }
+  }
+
+  // Regenerate the last assistant reply by removing it from the message list
+  // and re-running sendMessage with the previous user message as input.
+  function regenerateLast() {
+    if (streaming) return
+    // Find the last user message
+    const lastUser = [...messages].reverse().find(m => m.role === 'user')
+    if (!lastUser) return
+    // Drop trailing assistant messages
+    setMessages(prev => {
+      const lastUserIdx = [...prev].reverse().findIndex(m => m.role === 'user')
+      if (lastUserIdx < 0) return prev
+      const cutFrom = prev.length - lastUserIdx
+      return prev.slice(0, cutFrom)
+    })
+    setInput(lastUser.content)
+    setTimeout(() => sendMessage(), 0)
   }
 
   // ── Render ────────────────────────────────────────────────────────────────
@@ -759,32 +854,79 @@ function ChatPageInner() {
                 ⚠ {historyError}
               </div>
             )}
-            {/* Welcome message */}
+            {/* Welcome — adaptive headline + 3 example prompts */}
             {messages.length === 0 && (
-              <div style={{ display: 'flex', gap: '10px', marginBottom: '20px' }}>
-                <div style={{
-                  width: '28px', height: '28px', borderRadius: '50%', background: ink,
-                  display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  fontSize: '10px', fontWeight: 700, color: surf, flexShrink: 0,
-                }}>AI</div>
-                <div style={{
-                  maxWidth: '75%', padding: '11px 14px',
-                  borderRadius: `4px ${rLg} ${rLg} ${rLg}`,
-                  background: surf2, fontSize: '13.5px', lineHeight: 1.6, color: ink,
-                }}>
-                  {selectedDoc
-                    ? `I've loaded the document. Ask me anything — I'll cite exact page references for every answer.`
-                    : "Select a case and document above to start chatting. I'll answer questions grounded only in your documents."}
+              <div style={{ marginBottom: '24px' }}>
+                <div style={{ display: 'flex', gap: '10px', marginBottom: '16px' }}>
+                  <div style={{
+                    width: '28px', height: '28px', borderRadius: '50%', background: ink,
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    fontSize: '10px', fontWeight: 700, color: surf, flexShrink: 0,
+                  }}>AI</div>
+                  <div style={{
+                    maxWidth: '75%', padding: '11px 14px',
+                    borderRadius: `4px ${rLg} ${rLg} ${rLg}`,
+                    background: surf2, fontSize: '13.5px', lineHeight: 1.6, color: ink,
+                  }}>
+                    {selectedDoc
+                      ? `Ready. I've loaded "${selectedDocName}" — ask me anything and I'll cite specific pages.`
+                      : selectedCase
+                        ? `Ready. I have full context on "${selectedCaseObj?.title ?? 'this case'}". Ask me anything.`
+                        : `Hi — I'm your legal research assistant. Pick a case or document for grounded answers, or just ask a general question below.`}
+                  </div>
+                </div>
+                {/* Example prompts */}
+                <div style={{ marginLeft: '38px', display: 'flex', flexDirection: 'column', gap: '6px', maxWidth: '440px' }}>
+                  <div style={{ fontSize: '10px', fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: ink4, marginBottom: '4px' }}>
+                    Try asking
+                  </div>
+                  {makeSuggestions({
+                    caseTitle: selectedCaseObj?.title,
+                    hasDoc: !!selectedDoc,
+                  }).map((prompt, i) => (
+                    <button
+                      key={i}
+                      onClick={() => { setInput(prompt); setTimeout(() => sendMessage(), 0) }}
+                      style={{
+                        textAlign: 'left',
+                        padding: '10px 12px',
+                        background: '#FFFFFF',
+                        border: `1px solid ${hair}`,
+                        borderRadius: rMd,
+                        fontSize: '12.5px',
+                        color: ink,
+                        cursor: 'pointer',
+                        fontFamily: "'DM Sans', sans-serif",
+                        transition: 'background 0.12s ease, border-color 0.12s ease',
+                      }}
+                      onMouseEnter={e => {
+                        e.currentTarget.style.background = '#F7F6F3'
+                        e.currentTarget.style.borderColor = '#C8C8C4'
+                      }}
+                      onMouseLeave={e => {
+                        e.currentTarget.style.background = '#FFFFFF'
+                        e.currentTarget.style.borderColor = hair
+                      }}
+                    >
+                      {prompt}
+                    </button>
+                  ))}
                 </div>
               </div>
             )}
 
             {/* Message list */}
-            {messages.map((msg) => (
-              <div key={msg.id} style={{
-                display: 'flex', gap: '10px', marginBottom: '20px',
-                flexDirection: msg.role === 'user' ? 'row-reverse' : 'row',
-              }}>
+            {messages.map((msg, idx) => {
+              const isLastAssistant = msg.role === 'assistant' && idx === messages.length - 1 && !streaming
+              return (
+              <div
+                key={msg.id}
+                className="chat-msg-row"
+                style={{
+                  display: 'flex', gap: '10px', marginBottom: '20px',
+                  flexDirection: msg.role === 'user' ? 'row-reverse' : 'row',
+                }}
+              >
                 {/* Avatar */}
                 <div style={{
                   width: '28px', height: '28px', borderRadius: '50%', flexShrink: 0,
@@ -796,27 +938,44 @@ function ChatPageInner() {
                   {msg.role === 'user' ? 'You' : 'AI'}
                 </div>
 
-                {/* Bubble */}
+                {/* Bubble + actions wrapper */}
                 <div style={{
-                  maxWidth: '75%', padding: '11px 14px',
-                  borderRadius: msg.role === 'user'
-                    ? `${rLg} 4px ${rLg} ${rLg}`
-                    : `4px ${rLg} ${rLg} ${rLg}`,
-                  background: msg.role === 'user' ? ink : surf2,
-                  fontSize: '13.5px', lineHeight: 1.6,
-                  color: msg.role === 'user' ? surf : ink,
+                  maxWidth: '75%',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  alignItems: msg.role === 'user' ? 'flex-end' : 'flex-start',
                 }}>
-                  {/* Typing indicator OR content */}
+                  <div
+                    title={formatMsgTime(msg.createdAt)}
+                    style={{
+                      padding: '11px 14px',
+                      borderRadius: msg.role === 'user'
+                        ? `${rLg} 4px ${rLg} ${rLg}`
+                        : `4px ${rLg} ${rLg} ${rLg}`,
+                      background: msg.role === 'user' ? ink : surf2,
+                      fontSize: '13.5px', lineHeight: 1.6,
+                      color: msg.role === 'user' ? surf : ink,
+                    }}
+                  >
+                  {/* Typing indicator (with stage label) OR content */}
                   {msg.role === 'assistant' && !msg.content ? (
-                    <span style={{ display: 'flex', gap: '4px', alignItems: 'center', padding: '0' }}>
-                      {[0, 200, 400].map(delay => (
-                        <span key={delay} style={{
-                          width: '6px', height: '6px', borderRadius: '50%', background: ink4,
-                          display: 'inline-block',
-                          animation: 'bounce 1.2s infinite ease-in-out',
-                          animationDelay: `${delay}ms`,
-                        }} />
-                      ))}
+                    <span style={{ display: 'inline-flex', gap: '8px', alignItems: 'center' }}>
+                      <span style={{ display: 'inline-flex', gap: '4px', alignItems: 'center' }}>
+                        {[0, 200, 400].map(delay => (
+                          <span key={delay} style={{
+                            width: '6px', height: '6px', borderRadius: '50%', background: ink4,
+                            display: 'inline-block',
+                            animation: 'bounce 1.2s infinite ease-in-out',
+                            animationDelay: `${delay}ms`,
+                          }} />
+                        ))}
+                      </span>
+                      <span style={{ fontSize: '12px', color: ink4, fontStyle: 'italic' }}>
+                        {streamPhase === 'searching' ? 'Searching documents…'
+                          : streamPhase === 'reading' ? 'Reading sources…'
+                          : streamPhase === 'drafting' ? 'Drafting…'
+                          : 'Thinking…'}
+                      </span>
                     </span>
                   ) : msg.role === 'assistant' ? (
                     <AssistantMarkdown content={msg.content} />
@@ -839,21 +998,107 @@ function ChatPageInner() {
                       ))}
                     </span>
                   )}
+                  </div>
+
+                  {/* Hover actions (timestamp + copy + regenerate) */}
+                  {msg.content && (
+                    <div className="msg-actions" style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '6px',
+                      marginTop: '4px',
+                      fontSize: '11px',
+                      color: ink4,
+                      fontFamily: "'DM Sans', sans-serif",
+                      opacity: 0,
+                      transition: 'opacity 0.15s ease',
+                    }}>
+                      <span>{formatMsgTime(msg.createdAt)}</span>
+                      {msg.role === 'assistant' && (
+                        <>
+                          <span style={{ opacity: 0.4 }}>·</span>
+                          <button
+                            onClick={() => navigator.clipboard.writeText(msg.content)}
+                            title="Copy message"
+                            style={{
+                              background: 'none', border: 'none', padding: '2px 4px',
+                              fontSize: '11px', color: ink3, cursor: 'pointer',
+                              fontFamily: 'inherit',
+                            }}
+                          >
+                            Copy
+                          </button>
+                          {isLastAssistant && (
+                            <>
+                              <span style={{ opacity: 0.4 }}>·</span>
+                              <button
+                                onClick={() => regenerateLast()}
+                                title="Regenerate this response"
+                                style={{
+                                  background: 'none', border: 'none', padding: '2px 4px',
+                                  fontSize: '11px', color: ink3, cursor: 'pointer',
+                                  fontFamily: 'inherit',
+                                }}
+                              >
+                                Regenerate
+                              </button>
+                            </>
+                          )}
+                        </>
+                      )}
+                    </div>
+                  )}
                 </div>
               </div>
-            ))}
+              )
+            })}
             <div ref={messagesEndRef} />
           </div>
 
           {/* Input bar */}
-          <div style={{ padding: '16px 20px', borderTop: `1px solid ${hair}`, flexShrink: 0 }}>
+          <div style={{ padding: '12px 20px 16px', borderTop: `1px solid ${hair}`, flexShrink: 0 }}>
+            {/* Suggested follow-ups (after first turn) */}
+            {!streaming && suggestedPrompts.length > 0 && messages.length > 0 && (
+              <div style={{
+                display: 'flex', flexWrap: 'wrap', gap: '6px', marginBottom: '10px',
+              }}>
+                {suggestedPrompts.map((p, i) => (
+                  <button
+                    key={i}
+                    onClick={() => { setInput(p); setSuggestedPrompts([]); setTimeout(() => sendMessage(), 0) }}
+                    style={{
+                      padding: '6px 12px',
+                      background: '#FFFFFF',
+                      border: `1px solid ${hair}`,
+                      borderRadius: '99px',
+                      fontSize: '12px',
+                      color: ink2,
+                      cursor: 'pointer',
+                      fontFamily: "'DM Sans', sans-serif",
+                      transition: 'background 0.12s ease, border-color 0.12s ease',
+                    }}
+                    onMouseEnter={e => { e.currentTarget.style.background = '#F7F6F3'; e.currentTarget.style.borderColor = '#C8C8C4' }}
+                    onMouseLeave={e => { e.currentTarget.style.background = '#FFFFFF'; e.currentTarget.style.borderColor = hair }}
+                  >
+                    {p}
+                  </button>
+                ))}
+              </div>
+            )}
             <div style={{
               display: 'flex', alignItems: 'flex-end', gap: '8px',
               background: surf2, border: `1.5px solid ${hair}`, borderRadius: rLg, padding: '10px 12px',
             }}>
               <textarea
+                ref={inputRef}
                 value={input}
-                onChange={e => setInput(e.target.value)}
+                onChange={e => {
+                  setInput(e.target.value)
+                  // Auto-resize textarea
+                  const t = e.target
+                  t.style.height = 'auto'
+                  t.style.height = Math.min(t.scrollHeight, 200) + 'px'
+                }}
                 onKeyDown={handleKey}
                 placeholder={
                   selectedDoc
@@ -867,7 +1112,7 @@ function ChatPageInner() {
                 style={{
                   flex: 1, border: 'none', background: 'none', outline: 'none',
                   fontSize: '13.5px', fontFamily: "'DM Sans', system-ui, sans-serif", color: ink,
-                  resize: 'none', minHeight: '20px', maxHeight: '80px',
+                  resize: 'none', minHeight: '24px', maxHeight: '200px', lineHeight: 1.5,
                 }}
               />
               {streaming ? (
@@ -908,6 +1153,25 @@ function ChatPageInner() {
                   </svg>
                 </button>
               )}
+            </div>
+            {/* Hint + disclaimer below input */}
+            <div style={{
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center',
+              fontSize: '10.5px',
+              color: ink4,
+              marginTop: '8px',
+              fontFamily: "'DM Sans', sans-serif",
+              gap: '12px',
+              flexWrap: 'wrap',
+            }}>
+              <span>
+                <kbd style={kbdStyle}>Enter</kbd> to send · <kbd style={kbdStyle}>Shift</kbd>+<kbd style={kbdStyle}>Enter</kbd> for newline{streaming && <> · <kbd style={kbdStyle}>Esc</kbd> to stop</>}
+              </span>
+              <span style={{ fontStyle: 'italic' }}>
+                AI responses may contain errors. Not legal advice.
+              </span>
             </div>
           </div>
         </div>
@@ -1043,6 +1307,7 @@ function ChatPageInner() {
         @media (max-width: 1100px) {
           .chat-sessions-rail { display: none !important; }
         }
+        .chat-msg-row:hover .msg-actions { opacity: 1 !important; }
       `}</style>
     </div>
   )

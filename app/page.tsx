@@ -100,7 +100,7 @@ export default function LandingPage() {
           {[
             { num: '40%', label: 'Less research time' },
             { num: '38', label: 'States covered' },
-            { num: 'SOC2', label: 'Type II certified' },
+            { num: '256-bit', label: 'Encrypted at rest & in transit' },
             { num: '< 2 min', label: 'Per document upload' },
           ].map(({ num, label }) => (
             <div key={label} style={{ textAlign: 'center' }}>

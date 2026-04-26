@@ -83,6 +83,26 @@ export default function EditorPage() {
     return () => document.removeEventListener('click', close)
   }, [showExportDD])
 
+  // ── Cmd/Ctrl + S to manually save ────────────────────────────────────────
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => {
+      if ((e.metaKey || e.ctrlKey) && (e.key === 's' || e.key === 'S')) {
+        e.preventDefault()
+        saveDraft()
+      }
+    }
+    window.addEventListener('keydown', handler)
+    return () => window.removeEventListener('keydown', handler)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+
+  // Word count from the rendered text content (strip HTML tags first)
+  const wordCount = (() => {
+    const text = content.replace(/<[^>]*>/g, ' ').replace(/&nbsp;/g, ' ').trim()
+    return text ? text.split(/\s+/).length : 0
+  })()
+  const readingMinutes = Math.max(1, Math.round(wordCount / 220)) // ~220 wpm avg
+
   // ── Open a draft ─────────────────────────────────────────────────────────
 
   function openDraft(d: Draft) {
@@ -303,6 +323,16 @@ export default function EditorPage() {
         <ToolbarBtn id="h2" label="H2" command="formatBlock" value="h2" />
 
         <div style={{ marginLeft: 'auto', display: 'flex', gap: '8px', alignItems: 'center' }}>
+          {/* Word count + reading time */}
+          <span
+            title={`${wordCount} words · ~${readingMinutes} min read`}
+            style={{
+              fontSize: '11.5px', color: '#9A9A96', fontFamily: "'DM Sans', sans-serif",
+              marginRight: '4px',
+            }}
+          >
+            {wordCount.toLocaleString()} words · {readingMinutes} min
+          </span>
           <button
             onClick={() => setShowDraftsList(p => !p)}
             title="Toggle drafts list"

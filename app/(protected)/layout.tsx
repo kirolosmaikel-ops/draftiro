@@ -4,6 +4,8 @@ import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
 import { useEffect, useRef, useState } from 'react'
 import { createClient } from '@/lib/supabase/client'
+import { CommandPalette } from '@/components/CommandPalette'
+import { OnboardingModal } from '@/components/OnboardingModal'
 
 // ── Nav definitions ────────────────────────────────────────────────────────
 const ICON = {
@@ -120,6 +122,17 @@ function DockBtn({ href, label, icon, active, onClick }: {
   return href ? <Link href={href} style={{ textDecoration: 'none' }}>{inner}</Link> : inner
 }
 
+const hKbd: React.CSSProperties = {
+  background: 'rgba(0,0,0,0.05)',
+  border: '1px solid rgba(0,0,0,0.08)',
+  borderRadius: '5px',
+  padding: '1px 6px',
+  fontSize: '11px',
+  fontFamily: 'inherit',
+  color: '#3A3A38',
+  marginLeft: '3px',
+}
+
 interface BillingState {
   status: string | null
   trial_ends_at: string | null
@@ -163,6 +176,36 @@ export default function ProtectedLayout({ children }: { children: React.ReactNod
       }
     })
   }, [])
+
+  // Global keyboard nav (Cmd/Ctrl + 1..6 to dock items, ? to open help)
+  const [showHelp, setShowHelp] = useState(false)
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => {
+      const target = e.target as HTMLElement
+      const isTyping = target && (
+        target.tagName === 'INPUT' ||
+        target.tagName === 'TEXTAREA' ||
+        target.isContentEditable
+      )
+      // ? help sheet (only when not typing)
+      if (e.key === '?' && !isTyping && !e.metaKey && !e.ctrlKey && !e.altKey) {
+        e.preventDefault()
+        setShowHelp(true)
+      }
+      if (e.key === 'Escape') setShowHelp(false)
+      // Cmd/Ctrl + 1..6 → dock items (always works)
+      if ((e.metaKey || e.ctrlKey) && !e.shiftKey && !e.altKey) {
+        const map: Record<string, string> = {
+          '1': '/dashboard', '2': '/cases', '3': '/chat',
+          '4': '/knowledge', '5': '/editor', '6': '/billing',
+        }
+        const href = map[e.key]
+        if (href) { e.preventDefault(); router.push(href) }
+      }
+    }
+    window.addEventListener('keydown', handler)
+    return () => window.removeEventListener('keydown', handler)
+  }, [router])
 
   // Close user popover on outside click
   useEffect(() => {
@@ -406,6 +449,76 @@ export default function ProtectedLayout({ children }: { children: React.ReactNod
           )}
         </div>
       </div>
+
+      {/* Command palette (Cmd/Ctrl+K) */}
+      <CommandPalette />
+
+      {/* First-time onboarding (asks name + practice area, once) */}
+      <OnboardingModal />
+
+      {/* Keyboard shortcut help (?) */}
+      {showHelp && (
+        <div
+          onClick={() => setShowHelp(false)}
+          style={{
+            position: 'fixed', inset: 0, zIndex: 999,
+            background: 'rgba(15,15,14,0.45)',
+            backdropFilter: 'blur(6px)',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            padding: '24px',
+          }}
+        >
+          <div
+            onClick={e => e.stopPropagation()}
+            style={{
+              background: '#FFFFFF', borderRadius: '16px',
+              boxShadow: '0 24px 64px rgba(0,0,0,0.24)',
+              padding: '28px 32px', maxWidth: '440px', width: '100%',
+              fontFamily: 'DM Sans, system-ui, sans-serif',
+            }}
+          >
+            <div style={{ fontFamily: 'Newsreader, serif', fontSize: '22px', fontWeight: 600, marginBottom: '4px' }}>
+              Keyboard shortcuts
+            </div>
+            <div style={{ fontSize: '12.5px', color: '#9A9A96', marginBottom: '20px' }}>
+              Press <kbd style={hKbd}>?</kbd> any time to see this.
+            </div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+              {[
+                ['Open command palette', '⌘ K'],
+                ['Go to Dashboard',      '⌘ 1'],
+                ['Go to Cases',          '⌘ 2'],
+                ['Open Chat',            '⌘ 3'],
+                ['Open Knowledge',       '⌘ 4'],
+                ['Open Editor',          '⌘ 5'],
+                ['Open Billing',         '⌘ 6'],
+                ['Send chat message',    '↵'],
+                ['New line in chat',     'Shift ↵'],
+                ['Stop generating',      'Esc'],
+                ['Save draft',           '⌘ S'],
+              ].map(([label, key]) => (
+                <div key={label} style={{ display: 'flex', justifyContent: 'space-between', fontSize: '13px' }}>
+                  <span style={{ color: '#3A3A38' }}>{label}</span>
+                  <span>
+                    {key.split(' ').map((k, i) => <kbd key={i} style={hKbd}>{k}</kbd>)}
+                  </span>
+                </div>
+              ))}
+            </div>
+            <button
+              onClick={() => setShowHelp(false)}
+              style={{
+                marginTop: '24px', width: '100%', height: '40px',
+                background: '#0F0F0E', color: '#fff', border: 'none',
+                borderRadius: '10px', fontSize: '13.5px', fontWeight: 600,
+                cursor: 'pointer', fontFamily: 'inherit',
+              }}
+            >
+              Close
+            </button>
+          </div>
+        </div>
+      )}
 
       <style>{`
         @keyframes fadeUp {

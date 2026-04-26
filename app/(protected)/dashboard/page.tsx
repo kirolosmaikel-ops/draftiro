@@ -129,6 +129,7 @@ export default function DashboardPage() {
   const [loading, setLoading] = useState(true)
   const [dataError, setDataError] = useState('')
   const [activity, setActivity] = useState<{ time: string; text: string; href?: string }[]>([])
+  const [fullName, setFullName] = useState('')
 
   // Wrap loader in a stable callback so we can also fire it on auth state
   // changes (token refresh, session hydration) — fixes the "0 of everything
@@ -181,14 +182,15 @@ export default function DashboardPage() {
         items.sort((a, b) => b.ts - a.ts)
         setActivity(items.slice(0, 8).map(i => ({ time: i.time, text: i.text, href: i.href })))
 
-        // Load firm data for trial banner
+        // Load firm data for trial banner + full_name for greeting
         if (user) {
           try {
             const { data: userRow } = await supabase
               .from('users')
-              .select('firm_id')
+              .select('firm_id, full_name')
               .eq('id', user.id)
               .single()
+            if (userRow?.full_name) setFullName(userRow.full_name)
             if (userRow?.firm_id) {
               const { data: firmRow } = await supabase
                 .from('firms')
@@ -233,11 +235,15 @@ export default function DashboardPage() {
 
   const hour = new Date().getHours()
   const greeting = hour < 12 ? 'Good morning' : hour < 17 ? 'Good afternoon' : 'Good evening'
+  // Prefer the name they gave us during onboarding; fall back to email-prefix
+  // ONLY if it looks like a real name; otherwise greet generically with "back".
   const username = userEmail ? userEmail.split('@')[0] : ''
-  // Only show a name if it looks reasonable — otherwise just greet generically.
-  // "qa-test-260426" / "user1234" etc look unprofessional; fall back to "back".
   const looksHuman = /^[a-zA-Z][a-zA-Z'-]{1,30}$/.test(username)
-  const displayName = looksHuman ? username.charAt(0).toUpperCase() + username.slice(1) : 'back'
+  const displayName = fullName?.trim()
+    ? fullName.trim().split(/\s+/)[0]
+    : looksHuman
+      ? username.charAt(0).toUpperCase() + username.slice(1)
+      : 'back'
 
   const activeCases = cases.filter(c => c.status === 'active')
   const pendingCases = cases.filter(c => c.status === 'pending')
@@ -323,10 +329,63 @@ export default function DashboardPage() {
           <h1 style={{ fontFamily: 'Newsreader, serif', fontSize: '26px', fontWeight: 700, letterSpacing: '-0.5px', color: '#0F0F0E', marginBottom: '4px', marginTop: 0 }}>
             {greeting}{displayName ? `, ${displayName}` : ''}.
           </h1>
-          <p style={{ fontSize: '13.5px', color: '#6B6B68', marginBottom: '28px', marginTop: 0, fontFamily: 'DM Sans, sans-serif' }}>
+          <p style={{ fontSize: '13.5px', color: '#6B6B68', marginBottom: '20px', marginTop: 0, fontFamily: 'DM Sans, sans-serif' }}>
             {new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })}
             {' · '}{activeCases.length} active case{activeCases.length !== 1 ? 's' : ''}
           </p>
+
+          {/* Quick chat hero — like Claude.ai's home, lets the user start a
+              conversation without navigating to /chat first. */}
+          <form
+            onSubmit={e => {
+              e.preventDefault()
+              const target = e.currentTarget.elements.namedItem('q') as HTMLInputElement | null
+              const q = target?.value.trim()
+              if (q) window.location.href = `/chat?prompt=${encodeURIComponent(q)}`
+            }}
+            style={{
+              background: '#fff',
+              border: '1px solid rgba(0,0,0,0.07)',
+              borderRadius: '16px',
+              padding: '14px 16px',
+              marginBottom: '28px',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '12px',
+              boxShadow: '0 4px 12px rgba(0,0,0,0.04)',
+              fontFamily: 'DM Sans, sans-serif',
+            }}
+          >
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#9A9A96" strokeWidth="1.7" style={{ flexShrink: 0 }}>
+              <path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z" />
+              <path d="M8 9h8M8 13h5" />
+            </svg>
+            <input
+              name="q"
+              placeholder="Ask the AI anything — or pick a case for grounded answers"
+              style={{
+                flex: 1, border: 'none', outline: 'none',
+                fontSize: '14px', fontFamily: 'inherit', color: '#0F0F0E',
+                background: 'transparent',
+              }}
+            />
+            <button
+              type="submit"
+              style={{
+                height: '34px', padding: '0 16px',
+                background: '#0F0F0E', color: '#fff', border: 'none',
+                borderRadius: '10px',
+                fontSize: '12.5px', fontWeight: 600,
+                cursor: 'pointer', fontFamily: 'inherit',
+                display: 'flex', alignItems: 'center', gap: '6px',
+              }}
+            >
+              Ask AI
+              <svg width="11" height="11" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="2">
+                <path d="M3 8h10M9 4l4 4-4 4" />
+              </svg>
+            </button>
+          </form>
 
           {/* Stats grid */}
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '14px', marginBottom: '32px' }}>
