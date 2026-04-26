@@ -88,6 +88,7 @@ export default function KnowledgePage() {
 
   // Modals
   const [showNewClient, setShowNewClient] = useState(false)
+  const newClientBackdropRef = useRef(false)
   const [showNewMatter, setShowNewMatter] = useState(false)
 
   // New-client form
@@ -113,6 +114,14 @@ export default function KnowledgePage() {
   useEffect(() => {
     loadClients()
   }, [])
+
+  // ESC closes the New Client modal
+  useEffect(() => {
+    if (!showNewClient) return
+    const handler = (e: KeyboardEvent) => { if (e.key === 'Escape') resetNewClientModal() }
+    document.addEventListener('keydown', handler)
+    return () => document.removeEventListener('keydown', handler)
+  }, [showNewClient])
 
   async function loadClients() {
     setLoadError(null)
@@ -848,6 +857,11 @@ export default function KnowledgePage() {
       ══════════════════════════════════════════ */}
       {showNewClient && (
         <div
+          onMouseDown={e => { newClientBackdropRef.current = e.target === e.currentTarget }}
+          onMouseUp={e => {
+            if (newClientBackdropRef.current && e.target === e.currentTarget) resetNewClientModal()
+            newClientBackdropRef.current = false
+          }}
           style={{
             position: 'fixed',
             inset: 0,

@@ -179,10 +179,10 @@ export default function DashboardPage() {
   const pendingCases = cases.filter(c => c.status === 'pending')
 
   const statCards = [
-    { num: activeCases.length.toString(), label: 'Active Cases', change: 'Ongoing matters', changeColor: '#1A7A4A' },
-    { num: pendingCases.length.toString(), label: 'Due This Week', change: pendingCases.length > 0 ? 'Needs attention' : 'All clear', changeColor: pendingCases.length > 0 ? '#A0281A' : '#1A7A4A' },
-    { num: docCount.toString(), label: 'Documents', change: 'In knowledge base', changeColor: '#1A4FBF' },
-    { num: '0', label: 'AI Drafts Ready', change: 'Create a new draft', changeColor: '#6B6B68' },
+    { num: activeCases.length.toString(), label: 'Active Cases', change: 'Ongoing matters', changeColor: '#1A7A4A', href: '/cases' },
+    { num: pendingCases.length.toString(), label: 'Due This Week', change: pendingCases.length > 0 ? 'Needs attention' : 'All clear', changeColor: pendingCases.length > 0 ? '#A0281A' : '#1A7A4A', href: '/cases' },
+    { num: docCount.toString(), label: 'Documents', change: 'In knowledge base', changeColor: '#1A4FBF', href: '/knowledge' },
+    { num: '0', label: 'AI Drafts Ready', change: 'Create a new draft', changeColor: '#6B6B68', href: '/editor' },
   ]
 
   // Real activity feed comes online when there's actual activity to show.
@@ -268,10 +268,18 @@ export default function DashboardPage() {
           {/* Stats grid */}
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '14px', marginBottom: '32px' }}>
             {statCards.map((card, i) => (
-              <div
+              <Link
                 key={card.label}
+                href={card.href}
                 className={`stagger-${i + 1}`}
-                style={{ background: '#ffffff', border: '1px solid rgba(0,0,0,0.07)', borderRadius: '20px', padding: '20px 22px', boxShadow: '0 2px 8px rgba(0,0,0,0.05)' }}
+                style={{
+                  background: '#ffffff', border: '1px solid rgba(0,0,0,0.07)', borderRadius: '20px',
+                  padding: '20px 22px', boxShadow: '0 2px 8px rgba(0,0,0,0.05)',
+                  textDecoration: 'none', color: 'inherit',
+                  transition: 'transform 0.15s ease, box-shadow 0.15s ease',
+                  cursor: 'pointer',
+                  display: 'block',
+                }}
               >
                 <div style={{ fontFamily: 'Newsreader, serif', fontSize: '32px', fontWeight: 700, color: '#0F0F0E', letterSpacing: '-1px', lineHeight: 1 }}>
                   {loading ? '–' : card.num}
@@ -280,9 +288,9 @@ export default function DashboardPage() {
                   {card.label}
                 </div>
                 <div style={{ fontSize: '11.5px', fontWeight: 600, color: card.changeColor, marginTop: '6px', fontFamily: 'DM Sans, sans-serif' }}>
-                  {card.change}
+                  {card.change} →
                 </div>
-              </div>
+              </Link>
             ))}
           </div>
 

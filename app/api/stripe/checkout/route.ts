@@ -10,11 +10,23 @@ export async function POST(req: Request) {
 
   const origin = process.env.NEXT_PUBLIC_APP_URL ?? new URL(req.url).origin
 
-  // Verify user session
+  // Verify user session — try cookies first, fall back to Bearer token
   const supabase = await createClient()
-  const { data: { user }, error: authError } = await supabase.auth.getUser()
-  if (authError || !user) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  let user = (await supabase.auth.getUser()).data.user
+  if (!user) {
+    const authHeader = req.headers.get('authorization') ?? ''
+    const token = authHeader.startsWith('Bearer ') ? authHeader.slice(7) : null
+    if (token) {
+      const service = createServiceClient(
+        process.env.NEXT_PUBLIC_SUPABASE_URL!,
+        process.env.SUPABASE_SERVICE_ROLE_KEY!
+      )
+      const { data } = await service.auth.getUser(token)
+      user = data.user ?? null
+    }
+  }
+  if (!user) {
+    return NextResponse.json({ error: 'Please sign in first to start a subscription.' }, { status: 401 })
   }
 
   let body: { plan?: string; annual?: boolean }

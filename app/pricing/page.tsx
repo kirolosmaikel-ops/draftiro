@@ -1,10 +1,11 @@
 'use client'
 
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import { useSearchParams } from 'next/navigation'
 import { Suspense } from 'react'
 import { PLANS } from '@/lib/stripe'
+import { createClient } from '@/lib/supabase/client'
 
 type PlanKey = 'solo' | 'practice' | 'firm'
 
@@ -13,24 +14,46 @@ function PricingContent() {
   const reason = searchParams.get('reason')
   const [annual, setAnnual] = useState(false)
   const [loadingPlan, setLoadingPlan] = useState<PlanKey | null>(null)
+  const [checkoutError, setCheckoutError] = useState('')
+  const [isLoggedIn, setIsLoggedIn] = useState(false)
+  const supabase = createClient()
+
+  useEffect(() => {
+    supabase.auth.getSession().then(({ data: { session } }) => setIsLoggedIn(!!session))
+  }, [])
 
   async function handleCheckout(plan: PlanKey) {
+    setCheckoutError('')
+
+    // If not logged in, send them to sign up first
+    if (!isLoggedIn) {
+      window.location.href = `/login?next=/pricing&plan=${plan}`
+      return
+    }
+
     setLoadingPlan(plan)
     try {
+      // Pass the access token explicitly so the API route can authenticate
+      // even if cookie-based auth has any quirk.
+      const { data: { session } } = await supabase.auth.getSession()
+      const headers: Record<string, string> = { 'Content-Type': 'application/json' }
+      if (session?.access_token) headers.Authorization = `Bearer ${session.access_token}`
+
       const res = await fetch('/api/stripe/checkout', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers,
         body: JSON.stringify({ plan, annual }),
       })
       const json = await res.json()
       if (json.url) {
         window.location.href = json.url
-      } else if (json.error) {
-        alert(json.error)
+      } else {
+        setCheckoutError(json.error ?? `Checkout failed (${res.status})`)
         setLoadingPlan(null)
       }
     } catch (e) {
       console.error('checkout error:', e)
+      setCheckoutError(e instanceof Error ? e.message : 'Network error')
       setLoadingPlan(null)
     }
   }
@@ -194,12 +217,32 @@ function PricingContent() {
               >
                 {isLoading
                   ? 'Opening Checkout…'
-                  : `Start Free Trial →`}
+                  : isLoggedIn
+                    ? `Upgrade to ${data.name} →`
+                    : `Start Free Trial →`}
               </button>
             </div>
           )
         })}
       </div>
+
+      {/* Inline checkout error banner */}
+      {checkoutError && (
+        <div style={{
+          maxWidth: '720px',
+          margin: '24px auto 0',
+          padding: '14px 18px',
+          borderRadius: '12px',
+          background: '#FFE8E6',
+          color: '#A0281A',
+          border: '1px solid #FFBDBA',
+          fontSize: '13.5px',
+          lineHeight: 1.55,
+          fontFamily: 'DM Sans, sans-serif',
+        }}>
+          ⚠ {checkoutError}
+        </div>
+      )}
 
       {/* FAQ / Trust strip */}
       <div style={{ background: '#F7F6F3', borderTop: '1px solid rgba(0,0,0,0.06)', padding: '48px', textAlign: 'center' }}>

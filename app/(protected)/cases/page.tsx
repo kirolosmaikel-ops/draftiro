@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import Link from 'next/link'
 
@@ -218,11 +218,29 @@ function SelectField({
 }
 
 function Modal({ title, onClose, children }: { title: string; onClose: () => void; children: React.ReactNode }) {
-  // Close only via the X / Cancel buttons. Backdrop-click-to-close was
-  // killing the modal whenever a native <select> dropdown option was
-  // clicked outside the modal's bounding box.
+  // Close on ESC key
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose() }
+    document.addEventListener('keydown', handler)
+    return () => document.removeEventListener('keydown', handler)
+  }, [onClose])
+
+  // Backdrop click using mousedown+mouseup tracking — only close if BOTH
+  // events landed on the backdrop. Prevents close when a native <select>
+  // option click ends outside the modal box.
+  const downOnBackdrop = useRef(false)
+  function onBackdropMouseDown(e: React.MouseEvent<HTMLDivElement>) {
+    downOnBackdrop.current = e.target === e.currentTarget
+  }
+  function onBackdropMouseUp(e: React.MouseEvent<HTMLDivElement>) {
+    if (downOnBackdrop.current && e.target === e.currentTarget) onClose()
+    downOnBackdrop.current = false
+  }
+
   return (
     <div
+      onMouseDown={onBackdropMouseDown}
+      onMouseUp={onBackdropMouseUp}
       style={{
         position: 'fixed',
         inset: 0,
@@ -422,6 +440,7 @@ export default function CasesPage() {
   const [newCasePracticeArea, setNewCasePracticeArea] = useState('')
   const [newCaseClientId, setNewCaseClientId] = useState('')
   const [savingCase, setSavingCase] = useState(false)
+  const [caseError, setCaseError] = useState('')
 
   // New Client modal state
   const [showNewClient, setShowNewClient] = useState(false)
@@ -431,6 +450,7 @@ export default function CasesPage() {
   const [newClientCompany, setNewClientCompany] = useState('')
   const [newClientNotes, setNewClientNotes] = useState('')
   const [savingClient, setSavingClient] = useState(false)
+  const [clientError, setClientError] = useState('')
 
   useEffect(() => {
     loadAll()
@@ -473,11 +493,19 @@ export default function CasesPage() {
 
   async function handleCreateCase(e: React.FormEvent) {
     e.preventDefault()
-    if (!newCaseTitle.trim()) return
+    setCaseError('')
+    if (!newCaseTitle.trim()) {
+      setCaseError('Case title is required.')
+      return
+    }
     setSavingCase(true)
 
     const { data: { user } } = await supabase.auth.getUser()
-    if (!user) { setSavingCase(false); return }
+    if (!user) {
+      setCaseError('Your session has expired. Please sign in again.')
+      setSavingCase(false)
+      return
+    }
 
     const firmId = await getFirmId()
 
@@ -490,7 +518,9 @@ export default function CasesPage() {
       created_by: user.id,
     }).select().single()
 
-    if (!error && data) {
+    if (error) {
+      setCaseError(error.message || 'Could not create case. Try again.')
+    } else if (data) {
       setCases(prev => [data, ...prev])
       setNewCaseTitle('')
       setNewCasePracticeArea('')
@@ -502,7 +532,11 @@ export default function CasesPage() {
 
   async function handleCreateClient(e: React.FormEvent) {
     e.preventDefault()
-    if (!newClientName.trim()) return
+    setClientError('')
+    if (!newClientName.trim()) {
+      setClientError('Full name is required.')
+      return
+    }
     setSavingClient(true)
 
     const firmId = await getFirmId()
@@ -516,7 +550,9 @@ export default function CasesPage() {
       firm_id: firmId,
     }).select().single()
 
-    if (!error && data) {
+    if (error) {
+      setClientError(error.message || 'Could not add client. Try again.')
+    } else if (data) {
       setClients(prev => [...prev, data].sort((a, b) => a.name.localeCompare(b.name)))
       setNewClientName('')
       setNewClientEmail('')
@@ -648,7 +684,9 @@ export default function CasesPage() {
               fontFamily: 'DM Sans, sans-serif',
             }}
           >
-            {cases.length} total
+            {filter === 'all'
+              ? `${cases.length} total`
+              : `${filtered.length} ${filter} of ${cases.length} total`}
           </p>
 
           {/* Filter pills */}
@@ -768,8 +806,17 @@ export default function CasesPage() {
 
       {/* ── NEW CASE MODAL ── */}
       {showNewCase && (
-        <Modal title="New Case" onClose={() => setShowNewCase(false)}>
+        <Modal title="New Case" onClose={() => { setShowNewCase(false); setCaseError('') }}>
           <form onSubmit={handleCreateCase}>
+            {caseError && (
+              <div style={{
+                padding: '10px 14px', borderRadius: '8px', marginBottom: '14px',
+                background: '#FFE8E6', color: '#A0281A', border: '1px solid #FFBDBA',
+                fontSize: '13px', fontFamily: 'DM Sans, sans-serif',
+              }}>
+                ⚠ {caseError}
+              </div>
+            )}
             <InputField
               label="Case Title"
               value={newCaseTitle}
@@ -821,17 +868,17 @@ export default function CasesPage() {
               </button>
               <button
                 type="submit"
-                disabled={savingCase || !newCaseTitle.trim()}
+                disabled={savingCase}
                 style={{
                   height: '38px',
-                  background: savingCase || !newCaseTitle.trim() ? '#9A9A96' : '#0F0F0E',
+                  background: savingCase ? '#9A9A96' : '#0F0F0E',
                   color: '#ffffff',
                   border: 'none',
                   borderRadius: '10px',
                   padding: '0 24px',
                   fontSize: '13px',
                   fontWeight: 600,
-                  cursor: savingCase || !newCaseTitle.trim() ? 'not-allowed' : 'pointer',
+                  cursor: savingCase ? 'not-allowed' : 'pointer',
                   fontFamily: 'DM Sans, sans-serif',
                   transition: 'background 0.18s cubic-bezier(0.4,0,0.2,1)',
                 }}
@@ -845,8 +892,17 @@ export default function CasesPage() {
 
       {/* ── NEW CLIENT MODAL ── */}
       {showNewClient && (
-        <Modal title="New Client" onClose={() => setShowNewClient(false)}>
+        <Modal title="New Client" onClose={() => { setShowNewClient(false); setClientError('') }}>
           <form onSubmit={handleCreateClient}>
+            {clientError && (
+              <div style={{
+                padding: '10px 14px', borderRadius: '8px', marginBottom: '14px',
+                background: '#FFE8E6', color: '#A0281A', border: '1px solid #FFBDBA',
+                fontSize: '13px', fontFamily: 'DM Sans, sans-serif',
+              }}>
+                ⚠ {clientError}
+              </div>
+            )}
             <InputField
               label="Full Name"
               value={newClientName}
@@ -902,17 +958,17 @@ export default function CasesPage() {
               </button>
               <button
                 type="submit"
-                disabled={savingClient || !newClientName.trim()}
+                disabled={savingClient}
                 style={{
                   height: '38px',
-                  background: savingClient || !newClientName.trim() ? '#9A9A96' : '#0F0F0E',
+                  background: savingClient ? '#9A9A96' : '#0F0F0E',
                   color: '#ffffff',
                   border: 'none',
                   borderRadius: '10px',
                   padding: '0 24px',
                   fontSize: '13px',
                   fontWeight: 600,
-                  cursor: savingClient || !newClientName.trim() ? 'not-allowed' : 'pointer',
+                  cursor: savingClient ? 'not-allowed' : 'pointer',
                   fontFamily: 'DM Sans, sans-serif',
                   transition: 'background 0.18s cubic-bezier(0.4,0,0.2,1)',
                 }}

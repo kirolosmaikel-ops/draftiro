@@ -392,11 +392,13 @@ export default function EditorPage() {
         </div>
       </div>
 
-      {/* ── Editor layout ── */}
-      <div style={{ display: 'flex', flex: 1, overflow: 'hidden' }}>
+      {/* ── Editor layout (CSS grid so the main column is forced to 1fr —
+          flex was letting the contentEditable child dictate its own width
+          and the text was wrapping one character per line on narrow widths) ── */}
+      <div style={{ display: 'grid', gridTemplateColumns: showPanel ? '1fr 340px' : '1fr', flex: 1, overflow: 'hidden', minWidth: 0 }}>
 
         {/* ── Editor main ── */}
-        <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+        <div style={{ minWidth: 0, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
 
           {/* Editor canvas */}
           <div style={{
@@ -427,6 +429,9 @@ export default function EditorPage() {
                     color: '#3A3A38',
                     outline: 'none',
                     minHeight: '700px',
+                    width: '100%',
+                    wordBreak: 'break-word',
+                    overflowWrap: 'break-word',
                   }}
                 />
               </div>
@@ -434,14 +439,11 @@ export default function EditorPage() {
           </div>
         </div>
 
-        {/* ── Right AI Panel ── */}
-        <div style={{
-          width: showPanel ? '340px' : '0px',
+        {/* ── Right AI Panel (rendered only when open; grid column drops away) ── */}
+        {showPanel && <div style={{
           overflow: 'hidden',
-          transition: 'width 0.28s cubic-bezier(0.4,0,0.2,1)',
           background: '#FFFFFF',
-          borderLeft: showPanel ? '1px solid rgba(0,0,0,0.07)' : '1px solid transparent',
-          flexShrink: 0,
+          borderLeft: '1px solid rgba(0,0,0,0.07)',
           display: 'flex',
           flexDirection: 'column',
         }}>
@@ -541,7 +543,7 @@ export default function EditorPage() {
           }}>
             For full AI chat, use the <a href="/chat" style={{ color: '#1A4FBF', fontWeight: 600 }}>Cases &amp; Documents</a> page.
           </div>
-        </div>
+        </div>}
       </div>
     </div>
   )
