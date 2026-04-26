@@ -100,7 +100,7 @@ export default function BillingPage() {
         <span style={{ fontSize: '14px', fontWeight: 700, color: '#0F0F0E' }}>Billing & Subscription</span>
       </div>
 
-      <div style={{ flex: 1, overflowY: 'auto', padding: '36px' }}>
+      <div style={{ flex: 1, overflowY: 'auto', padding: '36px 36px 120px' }}>
         <div style={{ maxWidth: '680px' }}>
 
           {error && (
@@ -110,7 +110,25 @@ export default function BillingPage() {
           )}
 
           {loading ? (
-            <div style={{ padding: '48px', textAlign: 'center', color: '#9A9A96', fontSize: '14px' }}>Loading billing information…</div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+              {/* Skeleton: trial banner */}
+              <div className="bill-skel" style={{ height: '88px', borderRadius: '16px' }} />
+              {/* Skeleton: plan card */}
+              <div className="bill-skel" style={{ height: '180px', borderRadius: '16px' }} />
+              {/* Skeleton: features list */}
+              <div className="bill-skel" style={{ height: '220px', borderRadius: '16px' }} />
+              <style>{`
+                .bill-skel {
+                  background: linear-gradient(90deg, #EAEAE6 25%, #F2F1ED 50%, #EAEAE6 75%);
+                  background-size: 200% 100%;
+                  animation: bill-shimmer 1.4s linear infinite;
+                }
+                @keyframes bill-shimmer {
+                  0% { background-position: 200% 0; }
+                  100% { background-position: -200% 0; }
+                }
+              `}</style>
+            </div>
           ) : (
             <>
               {/* Trial banner */}

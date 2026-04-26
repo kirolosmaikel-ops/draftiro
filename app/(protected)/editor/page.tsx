@@ -53,6 +53,7 @@ export default function EditorPage() {
   const [showPanel, setShowPanel] = useState(false)
   const [showExportDD, setShowExportDD] = useState(false)
   const [exporting, setExporting] = useState(false)
+  const [showDraftsList, setShowDraftsList] = useState(true)
 
   // Hover states
   const [hoveredBtn, setHoveredBtn] = useState<string | null>(null)
@@ -302,6 +303,43 @@ export default function EditorPage() {
         <ToolbarBtn id="h2" label="H2" command="formatBlock" value="h2" />
 
         <div style={{ marginLeft: 'auto', display: 'flex', gap: '8px', alignItems: 'center' }}>
+          <button
+            onClick={() => setShowDraftsList(p => !p)}
+            title="Toggle drafts list"
+            style={{
+              height: '28px', padding: '0 10px',
+              background: showDraftsList ? '#F7F6F3' : 'none',
+              border: '1px solid rgba(0,0,0,0.08)',
+              borderRadius: '8px',
+              fontSize: '12px', fontWeight: 500, color: '#3A3A38',
+              fontFamily: "'DM Sans', sans-serif",
+              cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: '5px',
+            }}
+          >
+            <svg width="11" height="11" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.6">
+              <rect x="2" y="3" width="12" height="2" rx="0.5" />
+              <rect x="2" y="7" width="12" height="2" rx="0.5" />
+              <rect x="2" y="11" width="12" height="2" rx="0.5" />
+            </svg>
+            Drafts
+          </button>
+          <button
+            onClick={newDraft}
+            title="Start a new draft"
+            style={{
+              height: '28px', padding: '0 12px',
+              background: '#0F0F0E', color: '#fff',
+              border: 'none', borderRadius: '8px',
+              fontSize: '12px', fontWeight: 600,
+              fontFamily: "'DM Sans', sans-serif",
+              cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: '5px',
+            }}
+          >
+            <svg width="11" height="11" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="2.5">
+              <path d="M8 2v12M2 8h12" />
+            </svg>
+            New
+          </button>
           <SaveLabel />
 
           {/* Manual save button */}
@@ -403,7 +441,12 @@ export default function EditorPage() {
                   animation: 'fadeDown 0.12s ease',
                 }}
               >
-                <style>{`@keyframes fadeDown { from { opacity:0; transform:translateY(-4px) } to { opacity:1; transform:translateY(0) } }`}</style>
+                <style>{`
+                  @keyframes fadeDown { from { opacity:0; transform:translateY(-4px) } to { opacity:1; transform:translateY(0) } }
+                  @media (max-width: 1100px) {
+                    .editor-drafts-rail { display: none !important; }
+                  }
+                `}</style>
                 <div
                   onClick={() => exportDoc('docx')}
                   style={{
@@ -434,7 +477,73 @@ export default function EditorPage() {
       {/* ── Editor layout (CSS grid so the main column is forced to 1fr —
           flex was letting the contentEditable child dictate its own width
           and the text was wrapping one character per line on narrow widths) ── */}
-      <div style={{ display: 'grid', gridTemplateColumns: showPanel ? '1fr 340px' : '1fr', flex: 1, overflow: 'hidden', minWidth: 0 }}>
+      <div
+        className="editor-grid"
+        style={{
+          display: 'grid',
+          gridTemplateColumns: [
+            showDraftsList ? '240px' : null,
+            '1fr',
+            showPanel ? '340px' : null,
+          ].filter(Boolean).join(' '),
+          flex: 1,
+          overflow: 'hidden',
+          minWidth: 0,
+        }}
+      >
+
+        {/* ── Drafts list rail ── */}
+        {showDraftsList && (
+          <div className="editor-drafts-rail" style={{
+            borderRight: '1px solid rgba(0,0,0,0.07)',
+            background: '#FAF9F6',
+            display: 'flex', flexDirection: 'column',
+            overflow: 'hidden',
+          }}>
+            <div style={{
+              padding: '12px 16px', borderBottom: '1px solid rgba(0,0,0,0.07)',
+              fontSize: '11px', fontWeight: 700, letterSpacing: '0.08em',
+              textTransform: 'uppercase', color: '#9A9A96',
+              fontFamily: "'DM Sans', sans-serif",
+            }}>
+              All Drafts
+            </div>
+            <div style={{ flex: 1, overflowY: 'auto', padding: '6px 0' }}>
+              {drafts.length === 0 ? (
+                <div style={{ padding: '20px 16px', fontSize: '12px', color: '#9A9A96', lineHeight: 1.5, fontFamily: "'DM Sans', sans-serif" }}>
+                  No drafts yet. Click <strong>+ New</strong> in the toolbar to start one.
+                </div>
+              ) : drafts.map(d => {
+                const isActive = activeDraft?.id === d.id
+                return (
+                  <button
+                    key={d.id}
+                    onClick={() => openDraft(d)}
+                    style={{
+                      width: '100%', textAlign: 'left',
+                      padding: '8px 16px',
+                      background: isActive ? 'rgba(15,15,14,0.06)' : 'transparent',
+                      border: 'none', cursor: 'pointer', display: 'block',
+                      fontFamily: "'DM Sans', sans-serif",
+                    }}
+                  >
+                    <div style={{
+                      fontSize: '12.5px', fontWeight: 600, color: '#0F0F0E',
+                      whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
+                    }}>
+                      {d.title || 'Untitled Document'}
+                    </div>
+                    <div style={{
+                      fontSize: '10.5px', color: '#9A9A96', marginTop: '2px',
+                    }}>
+                      {new Date(d.updated_at).toLocaleDateString([], { month: 'short', day: 'numeric' })}
+                    </div>
+                  </button>
+                )
+              })}
+            </div>
+          </div>
+        )}
 
         {/* ── Editor main ── */}
         <div style={{ minWidth: 0, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>

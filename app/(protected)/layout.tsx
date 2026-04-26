@@ -341,7 +341,13 @@ export default function ProtectedLayout({ children }: { children: React.ReactNod
             }}>
               <div style={{ padding: '10px 12px 8px', fontSize: '12px', color: '#6B6B68', borderBottom: '1px solid rgba(0,0,0,0.06)' }}>
                 Signed in as
-                <div style={{ color: '#0F0F0E', fontWeight: 600, fontSize: '13px', marginTop: '2px', wordBreak: 'break-all' }}>
+                <div
+                  title={userEmail}
+                  style={{
+                    color: '#0F0F0E', fontWeight: 600, fontSize: '13px', marginTop: '2px',
+                    overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+                  }}
+                >
                   {userEmail || '—'}
                 </div>
               </div>
@@ -360,6 +366,22 @@ export default function ProtectedLayout({ children }: { children: React.ReactNod
                 onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
               >
                 Billing &amp; plan
+              </Link>
+              <Link
+                href="/settings"
+                onClick={() => setShowUserMenu(false)}
+                style={{
+                  display: 'block',
+                  padding: '9px 12px',
+                  fontSize: '13px',
+                  color: '#0F0F0E',
+                  borderRadius: '8px',
+                  textDecoration: 'none',
+                }}
+                onMouseEnter={e => (e.currentTarget.style.background = '#F7F6F3')}
+                onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
+              >
+                Account settings
               </Link>
               <button
                 onClick={signOut}

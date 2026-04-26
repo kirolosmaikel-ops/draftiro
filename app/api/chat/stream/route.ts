@@ -328,6 +328,25 @@ export async function POST(req: Request) {
       }
 
       let fullText = ''
+
+      // ── Persist the USER message immediately, before any LLM call ──────
+      // Previously we batched user+assistant into one insert AFTER streaming.
+      // If Anthropic erred out (timeout, 5xx), neither message was stored,
+      // so the conversation appeared to vanish on reload. Now the user
+      // turn is recorded up-front and the assistant turn is appended in
+      // the finally block — even partial assistant output is preserved.
+      if (sessionId) {
+        try {
+          const { error: userMsgErr } = await supabase.from('chat_messages').insert({
+            session_id: sessionId,
+            firm_id: firmId,
+            role: 'user',
+            content: message,
+          })
+          if (userMsgErr) logWarn('[chat/stream] user message persist failed:', userMsgErr.message)
+        } catch (e) { logWarn('[chat/stream] user message persist threw:', e) }
+      }
+
       try {
         // Split the system block: the stable preamble is cacheable, the
         // dynamic per-turn context (case file / memory / history / chunks)
@@ -422,30 +441,8 @@ ${contextBlock}`
           send({ type: 'citations', citations })
         }
 
-        // ── 6. Persist messages ────────────────────────────────────────────
-        if (sessionId) {
-          try {
-            const { error: msgErr } = await supabase.from('chat_messages').insert([
-              {
-                session_id: sessionId,
-                firm_id: firmId,
-                role: 'user',
-                content: message,
-              },
-              {
-                session_id: sessionId,
-                firm_id: firmId,
-                role: 'assistant',
-                content: fullText,
-                citations: chunks.slice(0, 4).map(c => ({ page: c.page_number })),
-              },
-            ])
-            if (msgErr) logWarn('[chat/stream] message persist error (non-fatal):', msgErr.message)
-            else log('[chat/stream] ✓ messages persisted')
-          } catch (e) {
-            logWarn('[chat/stream] message persist threw (non-fatal):', e)
-          }
-        }
+        // (Assistant message is persisted in the finally block below so
+        // partial responses on error are still saved.)
 
         controller.enqueue(encoder.encode('data: [DONE]\n\n'))
       } catch (err) {
@@ -454,6 +451,30 @@ ${contextBlock}`
         controller.enqueue(encoder.encode('data: [DONE]\n\n'))
       } finally {
         controller.close()
+
+        // ── 6. Persist ASSISTANT message (always, even on partial failure) ─
+        if (sessionId && fullText) {
+          try {
+            const { error: msgErr } = await supabase.from('chat_messages').insert({
+              session_id: sessionId,
+              firm_id: firmId,
+              role: 'assistant',
+              content: fullText,
+              citations: chunks.slice(0, 4).map(c => ({ page: c.page_number })),
+            })
+            if (msgErr) logWarn('[chat/stream] assistant persist error:', msgErr.message)
+            else log('[chat/stream] ✓ assistant message persisted (chars:', fullText.length, ')')
+          } catch (e) {
+            logWarn('[chat/stream] assistant persist threw:', e)
+          }
+          // Bump session updated_at so the History rail orders correctly.
+          try {
+            await supabase
+              .from('chat_sessions')
+              .update({ updated_at: new Date().toISOString() })
+              .eq('id', sessionId)
+          } catch { /* non-fatal */ }
+        }
 
         // ── 7. Memory extraction (fire-and-forget, downsampled) ─────────
         // Only extract on roughly 1 of every 3 assistant turns per session

@@ -130,10 +130,14 @@ export default function DashboardPage() {
   const [dataError, setDataError] = useState('')
   const [activity, setActivity] = useState<{ time: string; text: string; href?: string }[]>([])
 
-  useEffect(() => {
-    async function load() {
+  // Wrap loader in a stable callback so we can also fire it on auth state
+  // changes (token refresh, session hydration) — fixes the "0 of everything
+  // until you click somewhere" race where dashboard mounted before the
+  // browser SDK had a session.
+  const load = async () => {
       try {
         const { data: { user } } = await supabase.auth.getUser()
+        if (!user) return // no session yet — wait for onAuthStateChange
         setUserEmail(user?.email ?? '')
 
         const [casesRes, docsRes] = await Promise.all([
@@ -204,7 +208,22 @@ export default function DashboardPage() {
         setLoading(false)
       }
     }
+
+  useEffect(() => {
     load()
+    // Re-load whenever auth state changes (initial hydration after a hard
+    // refresh often arrives after the first render).
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      if (session?.user) load()
+    })
+    // Also re-load when the tab regains focus — cheap defensive refresh.
+    const onFocus = () => load()
+    window.addEventListener('focus', onFocus)
+    return () => {
+      subscription.unsubscribe()
+      window.removeEventListener('focus', onFocus)
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
   // Trial days remaining
@@ -215,7 +234,10 @@ export default function DashboardPage() {
   const hour = new Date().getHours()
   const greeting = hour < 12 ? 'Good morning' : hour < 17 ? 'Good afternoon' : 'Good evening'
   const username = userEmail ? userEmail.split('@')[0] : ''
-  const displayName = username ? username.charAt(0).toUpperCase() + username.slice(1) : ''
+  // Only show a name if it looks reasonable — otherwise just greet generically.
+  // "qa-test-260426" / "user1234" etc look unprofessional; fall back to "back".
+  const looksHuman = /^[a-zA-Z][a-zA-Z'-]{1,30}$/.test(username)
+  const displayName = looksHuman ? username.charAt(0).toUpperCase() + username.slice(1) : 'back'
 
   const activeCases = cases.filter(c => c.status === 'active')
   const pendingCases = cases.filter(c => c.status === 'pending')

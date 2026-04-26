@@ -551,7 +551,7 @@ export default function KnowledgePage() {
             </div>
           ) : (
             <>
-              {/* Client header */}
+              {/* Client header — wraps to a second row when actions don't fit */}
               <div style={{
                 padding: '18px 24px',
                 borderBottom: '1px solid rgba(0,0,0,0.07)',
@@ -559,6 +559,7 @@ export default function KnowledgePage() {
                 alignItems: 'center',
                 gap: '12px',
                 flexShrink: 0,
+                flexWrap: 'wrap',
               }}>
                 <div style={{ flex: 1, minWidth: 0 }}>
                   <div style={{

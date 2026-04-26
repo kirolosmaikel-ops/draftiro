@@ -201,10 +201,14 @@ function ChatPageInner() {
   useEffect(() => () => { abortRef.current?.abort() }, [])
 
   // ── Close dropdowns on outside click ─────────────────────────────────────
+  // Use 'click' (not 'mousedown') so React's onClick on the dropdown items
+  // fires FIRST in the bubble path. Previously the document mousedown handler
+  // closed and unmounted the dropdown before the item's click could register,
+  // making the case selector silently non-functional.
   useEffect(() => {
     const handler = () => { setShowCaseDD(false); setShowDocDD(false) }
-    document.addEventListener('mousedown', handler)
-    return () => document.removeEventListener('mousedown', handler)
+    document.addEventListener('click', handler)
+    return () => document.removeEventListener('click', handler)
   }, [])
 
   // ── Helpers ───────────────────────────────────────────────────────────────
@@ -366,7 +370,7 @@ function ChatPageInner() {
         <div style={{ width: '1px', height: '16px', background: hair, margin: '0 4px' }} />
 
         {/* Case dropdown */}
-        <div style={{ position: 'relative' }} onMouseDown={e => e.stopPropagation()}>
+        <div style={{ position: 'relative' }} onClick={e => e.stopPropagation()}>
           <div
             onClick={() => { setShowCaseDD(p => !p); setShowDocDD(false) }}
             style={{
@@ -416,7 +420,7 @@ function ChatPageInner() {
         </div>
 
         {/* Document dropdown */}
-        <div style={{ position: 'relative' }} onMouseDown={e => e.stopPropagation()}>
+        <div style={{ position: 'relative' }} onClick={e => e.stopPropagation()}>
           <div
             onClick={() => { setShowDocDD(p => !p); setShowCaseDD(false) }}
             style={{
@@ -468,15 +472,18 @@ function ChatPageInner() {
           )}
         </div>
 
-        {/* Right: export buttons + draft toggle */}
+        {/* Right: export buttons + draft toggle. Exports require a doc. */}
         <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: '6px' }}>
           <button
             onClick={() => exportDoc('docx')}
-            title="Export as Word document"
+            disabled={!selectedDoc}
+            title={selectedDoc ? 'Export as Word document' : 'Select a document first'}
             style={{
               height: '30px', background: surf2, border: `1px solid ${hair}`, borderRadius: rMd,
               padding: '0 12px', display: 'flex', alignItems: 'center', gap: '6px',
-              cursor: 'pointer', fontSize: '12px', fontWeight: 500, color: blue,
+              cursor: selectedDoc ? 'pointer' : 'not-allowed',
+              fontSize: '12px', fontWeight: 500, color: selectedDoc ? blue : ink4,
+              opacity: selectedDoc ? 1 : 0.5,
             }}
           >
             <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" width="14" height="14"><rect x="2" y="1" width="9" height="14" rx="1" /><path d="M11 4h3l-3 4h3" /></svg>
@@ -484,11 +491,15 @@ function ChatPageInner() {
           </button>
           <button
             onClick={() => exportDoc('pdf')}
-            title="Export as PDF"
+            disabled={!selectedDoc}
+            title={selectedDoc ? 'Export as PDF' : 'Select a document first'}
             style={{
               height: '30px', background: surf2, border: `1px solid ${hair}`, borderRadius: rMd,
               padding: '0 12px', display: 'flex', alignItems: 'center', gap: '6px',
-              cursor: 'pointer', fontSize: '12px', fontWeight: 500, color: '#A0281A',
+              cursor: selectedDoc ? 'pointer' : 'not-allowed',
+              fontSize: '12px', fontWeight: 500,
+              color: selectedDoc ? '#A0281A' : ink4,
+              opacity: selectedDoc ? 1 : 0.5,
             }}
           >
             <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" width="14" height="14"><rect x="2" y="1" width="12" height="14" rx="1" /><path d="M5 6h6M5 9h6M5 12h4" /></svg>
@@ -497,15 +508,18 @@ function ChatPageInner() {
           <div style={{ width: '1px', height: '16px', background: hair, margin: '0 4px' }} />
           <button
             onClick={() => setShowSessions(p => !p)}
-            title="Past chat sessions"
+            title="Toggle past conversations panel"
             style={{
               background: 'none', border: `1px solid ${hair}`, borderRadius: rMd,
               padding: '0 12px', height: '30px', fontSize: '12px', fontWeight: 500, cursor: 'pointer',
               color: showSessions ? ink : ink3, display: 'inline-flex', alignItems: 'center', gap: '5px',
             }}
           >
-            <svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.8"><circle cx="8" cy="8" r="6" /><path d="M8 5v3l2 1" /></svg>
-            History
+            <svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.6">
+              <rect x="1" y="2" width="5" height="12" rx="1" />
+              <rect x="8" y="2" width="7" height="12" rx="1" />
+            </svg>
+            Conversations
           </button>
           <button
             onClick={() => {
@@ -538,12 +552,13 @@ function ChatPageInner() {
         </div>
       </div>
 
-      {/* ── MAIN LAYOUT ────────────────────────────────────────────────── */}
-      <div style={{ display: 'flex', flex: 1, overflow: 'hidden' }}>
+      {/* ── MAIN LAYOUT — auto-collapse session rail at narrow widths so the
+          chat column never gets clipped when Draft is also open. ────────── */}
+      <div style={{ display: 'flex', flex: 1, overflow: 'hidden', minWidth: 0 }}>
 
         {/* ── SESSIONS RAIL ─────────────────────────────────────────────── */}
         {showSessions && (
-          <div style={{
+          <div className="chat-sessions-rail" style={{
             width: '240px', flexShrink: 0,
             borderRight: `1px solid ${hair}`,
             background: surf,
@@ -1023,6 +1038,11 @@ function ChatPageInner() {
         .md-content a { color: #1A4FBF; text-decoration: underline; }
         .md-content table { border-collapse: collapse; margin: 6px 0; }
         .md-content th, .md-content td { border: 1px solid rgba(0,0,0,0.1); padding: 4px 8px; font-size: 12px; }
+        /* Auto-hide the conversation rail at narrow widths so the chat
+           column doesn't get clipped when the draft panel is also open. */
+        @media (max-width: 1100px) {
+          .chat-sessions-rail { display: none !important; }
+        }
       `}</style>
     </div>
   )

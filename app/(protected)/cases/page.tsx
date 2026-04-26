@@ -548,6 +548,9 @@ export default function CasesPage() {
       setNewCasePracticeArea('')
       setNewCaseClientId('')
       setShowNewCase(false)
+      // New cases are created with status='active'; switch the filter to a
+      // view where they're visible so the user sees what they just created.
+      if (filter !== 'all' && filter !== 'active') setFilter('all')
     }
     setSavingCase(false)
   }
