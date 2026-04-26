@@ -35,19 +35,26 @@ export default function OnboardingStep1() {
 
   async function handleUpload() {
     if (!file) {
-      router.push('/onboarding/step2')
+      router.push('/dashboard')
       return
     }
     setUploading(true)
+    let docId: string | null = null
     try {
       const form = new FormData()
       form.append('file', file)
-      await fetch('/api/documents/upload', { method: 'POST', body: form })
+      const res = await fetch('/api/documents/upload', { method: 'POST', body: form })
+      if (res.ok) {
+        const j = await res.json() as { id?: string }
+        docId = j.id ?? null
+      }
     } catch {
       // continue even on error
     }
     setUploading(false)
-    router.push('/onboarding/step2')
+    // Land on chat preselected to the doc the user just uploaded — they can ask
+    // a question immediately. If no doc id came back, just go to dashboard.
+    router.push(docId ? `/chat?doc=${docId}` : '/dashboard')
   }
 
   const SAMPLE_FILES = ['📋 Sample NDA.pdf', '⚖️ Sample Deposition.pdf', '🏛️ Sample Motion.pdf']

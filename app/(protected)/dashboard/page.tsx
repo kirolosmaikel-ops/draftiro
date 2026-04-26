@@ -32,6 +32,18 @@ const STATUS_DOT: Record<string, string> = {
   archived: '#C8C8C4',
 }
 
+function relTime(iso: string): string {
+  const diff = Date.now() - new Date(iso).getTime()
+  const m = Math.floor(diff / 60000)
+  if (m < 1) return 'just now'
+  if (m < 60) return `${m}m ago`
+  const h = Math.floor(m / 60)
+  if (h < 24) return `${h}h ago`
+  const d = Math.floor(h / 24)
+  if (d < 7) return `${d}d ago`
+  return new Date(iso).toLocaleDateString([], { month: 'short', day: 'numeric' })
+}
+
 function CaseCard({ c }: { c: Case }) {
   const [hovered, setHovered] = useState(false)
   return (
@@ -116,6 +128,7 @@ export default function DashboardPage() {
   const [firm, setFirm] = useState<FirmData | null>(null)
   const [loading, setLoading] = useState(true)
   const [dataError, setDataError] = useState('')
+  const [activity, setActivity] = useState<{ time: string; text: string; href?: string }[]>([])
 
   useEffect(() => {
     async function load() {
@@ -134,6 +147,35 @@ export default function DashboardPage() {
 
         setCases(casesRes.data ?? [])
         setDocCount(docsRes.count ?? 0)
+
+        // Activity feed: most recent docs, sessions, drafts (5 each, then merge)
+        const [docsList, sessionsList, draftsList] = await Promise.all([
+          supabase.from('documents').select('id, name, created_at').order('created_at', { ascending: false }).limit(5),
+          supabase.from('chat_sessions').select('id, title, case_id, updated_at').order('updated_at', { ascending: false }).limit(5),
+          supabase.from('drafts').select('id, title, updated_at').order('updated_at', { ascending: false }).limit(5),
+        ])
+        type Item = { ts: number; time: string; text: string; href?: string }
+        const items: Item[] = []
+        ;(docsList.data ?? []).forEach(d => items.push({
+          ts: new Date(d.created_at).getTime(),
+          time: relTime(d.created_at),
+          text: `Uploaded ${d.name}`,
+          href: '/knowledge',
+        }))
+        ;(sessionsList.data ?? []).forEach(s => items.push({
+          ts: new Date(s.updated_at).getTime(),
+          time: relTime(s.updated_at),
+          text: `Chat: ${s.title ?? 'Untitled'}`,
+          href: `/chat?session=${s.id}`,
+        }))
+        ;(draftsList.data ?? []).forEach(d => items.push({
+          ts: new Date(d.updated_at).getTime(),
+          time: relTime(d.updated_at),
+          text: `Drafted ${d.title ?? 'Untitled'}`,
+          href: '/editor',
+        }))
+        items.sort((a, b) => b.ts - a.ts)
+        setActivity(items.slice(0, 8).map(i => ({ time: i.time, text: i.text, href: i.href })))
 
         // Load firm data for trial banner
         if (user) {
@@ -185,8 +227,7 @@ export default function DashboardPage() {
     { num: '0', label: 'AI Drafts Ready', change: 'Create a new draft', changeColor: '#6B6B68', href: '/editor' },
   ]
 
-  // Real activity feed comes online when there's actual activity to show.
-  const activityItems: { time: string; text: string }[] = []
+  const activityItems = activity
 
   return (
     <div style={{ display: 'flex', flex: 1, overflow: 'hidden', flexDirection: 'column' }}>
@@ -282,7 +323,15 @@ export default function DashboardPage() {
                 }}
               >
                 <div style={{ fontFamily: 'Newsreader, serif', fontSize: '32px', fontWeight: 700, color: '#0F0F0E', letterSpacing: '-1px', lineHeight: 1 }}>
-                  {loading ? '–' : card.num}
+                  {loading ? (
+                    <span className="skeleton-pill" style={{
+                      display: 'inline-block', width: '48px', height: '32px',
+                      borderRadius: '10px',
+                      background: 'linear-gradient(90deg, #EAEAE6 25%, #F2F1ED 50%, #EAEAE6 75%)',
+                      backgroundSize: '200% 100%',
+                      animation: 'shimmer 1.4s linear infinite',
+                    }} />
+                  ) : card.num}
                 </div>
                 <div style={{ fontSize: '11px', fontWeight: 700, color: '#9A9A96', textTransform: 'uppercase', letterSpacing: '0.08em', marginTop: '5px', fontFamily: 'DM Sans, sans-serif' }}>
                   {card.label}
@@ -323,13 +372,18 @@ export default function DashboardPage() {
           </div>
           {activityItems.length > 0 ? (
             <div style={{ borderLeft: '2px solid #C9A84C', paddingLeft: '14px', marginBottom: '28px', display: 'flex', flexDirection: 'column', gap: '14px' }}>
-              {activityItems.map((item, i) => (
-                <div key={i} style={{ position: 'relative' }}>
-                  <div style={{ position: 'absolute', left: '-19px', top: '5px', width: '6px', height: '6px', borderRadius: '50%', background: '#C9A84C' }} />
-                  <div style={{ fontSize: '11px', color: '#9A9A96', fontFamily: 'DM Sans, sans-serif', marginBottom: '2px' }}>{item.time}</div>
-                  <div style={{ fontSize: '12.5px', color: '#3A3A38', fontFamily: 'DM Sans, sans-serif', lineHeight: 1.4 }}>{item.text}</div>
-                </div>
-              ))}
+              {activityItems.map((item, i) => {
+                const inner = (
+                  <div style={{ position: 'relative' }}>
+                    <div style={{ position: 'absolute', left: '-19px', top: '5px', width: '6px', height: '6px', borderRadius: '50%', background: '#C9A84C' }} />
+                    <div style={{ fontSize: '11px', color: '#9A9A96', fontFamily: 'DM Sans, sans-serif', marginBottom: '2px' }}>{item.time}</div>
+                    <div style={{ fontSize: '12.5px', color: '#3A3A38', fontFamily: 'DM Sans, sans-serif', lineHeight: 1.4 }}>{item.text}</div>
+                  </div>
+                )
+                return item.href
+                  ? <Link key={i} href={item.href} style={{ textDecoration: 'none', color: 'inherit' }}>{inner}</Link>
+                  : <div key={i}>{inner}</div>
+              })}
             </div>
           ) : (
             <div style={{ fontSize: '12px', color: '#9A9A96', fontFamily: 'DM Sans, sans-serif', lineHeight: 1.5, marginBottom: '28px', padding: '12px 14px', background: 'rgba(255,255,255,0.5)', borderRadius: '10px', border: '1px dashed rgba(0,0,0,0.08)' }}>
@@ -345,6 +399,13 @@ export default function DashboardPage() {
           </div>
         </aside>
       </div>
+
+      <style>{`
+        @keyframes shimmer {
+          0%   { background-position: 200% 0; }
+          100% { background-position: -200% 0; }
+        }
+      `}</style>
     </div>
   )
 }

@@ -11,19 +11,26 @@ export async function POST(req: Request) {
   const body = await req.json() as { id?: string; title: string; content: string; caseId?: string }
   const { id, title, content, caseId } = body
 
-  // Try cookie session first, fall back to Bearer token
-  const supabase = await createClient()
-  let user = (await supabase.auth.getUser()).data.user
+  // Bearer first (deterministic), cookies as fallback (cookies can hang)
+  let user: { id: string; email?: string } | null = null
+  const authHeader = req.headers.get('authorization') ?? ''
+  const token = authHeader.startsWith('Bearer ') ? authHeader.slice(7) : null
+  if (token) {
+    const tmp = serviceClientDirect(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.SUPABASE_SERVICE_ROLE_KEY!
+    )
+    user = (await tmp.auth.getUser(token)).data.user ?? null
+  }
   if (!user) {
-    const authHeader = req.headers.get('authorization') ?? ''
-    const token = authHeader.startsWith('Bearer ') ? authHeader.slice(7) : null
-    if (token) {
-      const tmp = serviceClientDirect(
-        process.env.NEXT_PUBLIC_SUPABASE_URL!,
-        process.env.SUPABASE_SERVICE_ROLE_KEY!
-      )
-      user = (await tmp.auth.getUser(token)).data.user ?? null
-    }
+    try {
+      const supabase = await createClient()
+      const result = await Promise.race([
+        supabase.auth.getUser(),
+        new Promise<{ data: { user: null } }>(r => setTimeout(() => r({ data: { user: null } }), 3000)),
+      ])
+      user = result.data.user ?? null
+    } catch { user = null }
   }
   if (!user) {
     console.warn('[editor/save] ✗ not authenticated')

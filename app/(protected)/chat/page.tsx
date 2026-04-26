@@ -3,6 +3,8 @@
 import { Suspense, useEffect, useRef, useState, useCallback } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { useSearchParams } from 'next/navigation'
+import ReactMarkdown from 'react-markdown'
+import remarkGfm from 'remark-gfm'
 
 // ── Types ──────────────────────────────────────────────────────────────────
 interface Msg {
@@ -49,15 +51,18 @@ function ChatPageInner() {
   const supabase = createClient()
   const searchParams = useSearchParams()
   const initialCaseId = searchParams.get('case')
+  const initialDocId = searchParams.get('doc')
+  const initialSessionId = searchParams.get('session')
 
   // State
   const [cases, setCases] = useState<CaseRow[]>([])
   const [docs, setDocs] = useState<Doc[]>([])
   const [selectedCase, setSelectedCase] = useState<string>(initialCaseId ?? '')
-  const [selectedDoc, setSelectedDoc] = useState<string>('')
-  const [sessionId, setSessionId] = useState<string | null>(null)
+  const [selectedDoc, setSelectedDoc] = useState<string>(initialDocId ?? '')
+  const [sessionId, setSessionId] = useState<string | null>(initialSessionId ?? null)
   const [messages, setMessages] = useState<Msg[]>([])
   const [input, setInput] = useState('')
+  const [draftInput, setDraftInput] = useState('')
   const [streaming, setStreaming] = useState(false)
   const [showDraft, setShowDraft] = useState(false)
   const [showCaseDD, setShowCaseDD] = useState(false)
@@ -68,6 +73,11 @@ function ChatPageInner() {
   const abortRef = useRef<AbortController | null>(null)
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null)
 
+  // Session list (left rail)
+  type SessionRow = { id: string; title: string | null; case_id: string | null; document_id: string | null; updated_at: string }
+  const [sessions, setSessions] = useState<SessionRow[]>([])
+  const [showSessions, setShowSessions] = useState(true)
+
   // ── Load cases ────────────────────────────────────────────────────────────
   useEffect(() => {
     supabase.from('cases').select('id,title,status').order('updated_at', { ascending: false })
@@ -77,6 +87,38 @@ function ChatPageInner() {
       })
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
+
+  // ── Load chat session list (most recent 30 across firm) ────────────────
+  async function refreshSessions() {
+    const { data } = await supabase
+      .from('chat_sessions')
+      .select('id, title, case_id, document_id, updated_at')
+      .order('updated_at', { ascending: false })
+      .limit(30)
+    setSessions(data ?? [])
+  }
+  useEffect(() => { refreshSessions() }, []) // eslint-disable-line react-hooks/exhaustive-deps
+
+  // ── Load message history when sessionId changes (URL-driven) ───────────
+  useEffect(() => {
+    if (!sessionId) { setMessages([]); return }
+    (async () => {
+      const { data: { session } } = await supabase.auth.getSession()
+      const headers: Record<string, string> = {}
+      if (session?.access_token) headers.Authorization = `Bearer ${session.access_token}`
+      const res = await fetch(`/api/chat/query?sessionId=${sessionId}`, { headers })
+      if (!res.ok) return
+      const json = await res.json() as { messages: { id: string; role: string; content: string; citations?: Citation[] }[] }
+      setMessages(
+        (json.messages ?? []).map(m => ({
+          id: m.id,
+          role: m.role as 'user' | 'assistant',
+          content: m.content,
+          citations: m.citations,
+        }))
+      )
+    })()
+  }, [sessionId]) // eslint-disable-line react-hooks/exhaustive-deps
 
   // ── Load docs when case changes ───────────────────────────────────────────
   useEffect(() => {
@@ -132,15 +174,19 @@ function ChatPageInner() {
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) return null
     const { data: userData } = await supabase.from('users').select('firm_id').eq('id', user.id).single()
+    // Title from first user message would be ideal but we don't have it yet —
+    // the first user line will be the start of `input`. Store first 60 chars.
+    const titleSeed = (input || 'New chat').slice(0, 60)
     const { data, error } = await supabase.from('chat_sessions').insert({
       firm_id: userData?.firm_id,
       user_id: user.id,
       case_id: selectedCase || null,
       document_id: selectedDoc || null,
-      title: `Chat ${new Date().toLocaleDateString()}`,
+      title: titleSeed,
     }).select('id').single()
     if (error || !data) return null
     setSessionId(data.id)
+    window.history.replaceState(null, '', `/chat?session=${data.id}`)
     return data.id
   }
 
@@ -252,6 +298,8 @@ function ChatPageInner() {
       }
     } finally {
       setStreaming(false)
+      // Refresh session list (a new session may have been created; updated_at moved)
+      refreshSessions()
     }
   }, [input, streaming, selectedDoc, selectedCase, sessionId]) // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -403,6 +451,35 @@ function ChatPageInner() {
           </button>
           <div style={{ width: '1px', height: '16px', background: hair, margin: '0 4px' }} />
           <button
+            onClick={() => setShowSessions(p => !p)}
+            title="Past chat sessions"
+            style={{
+              background: 'none', border: `1px solid ${hair}`, borderRadius: rMd,
+              padding: '0 12px', height: '30px', fontSize: '12px', fontWeight: 500, cursor: 'pointer',
+              color: showSessions ? ink : ink3, display: 'inline-flex', alignItems: 'center', gap: '5px',
+            }}
+          >
+            <svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.8"><circle cx="8" cy="8" r="6" /><path d="M8 5v3l2 1" /></svg>
+            History
+          </button>
+          <button
+            onClick={() => {
+              setSessionId(null)
+              setMessages([])
+              setInput('')
+              window.history.replaceState(null, '', '/chat')
+            }}
+            title="Start a new chat"
+            style={{
+              background: '#0F0F0E', color: '#fff', border: 'none', borderRadius: rMd,
+              padding: '0 12px', height: '30px', fontSize: '12px', fontWeight: 600, cursor: 'pointer',
+              display: 'inline-flex', alignItems: 'center', gap: '5px',
+            }}
+          >
+            <svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M8 2v12M2 8h12" /></svg>
+            New
+          </button>
+          <button
             onClick={() => setShowDraft(p => !p)}
             style={{
               background: 'none', border: `1px solid ${hair}`, borderRadius: rMd,
@@ -418,6 +495,79 @@ function ChatPageInner() {
 
       {/* ── MAIN LAYOUT ────────────────────────────────────────────────── */}
       <div style={{ display: 'flex', flex: 1, overflow: 'hidden' }}>
+
+        {/* ── SESSIONS RAIL ─────────────────────────────────────────────── */}
+        {showSessions && (
+          <div style={{
+            width: '240px', flexShrink: 0,
+            borderRight: `1px solid ${hair}`,
+            background: surf,
+            display: 'flex', flexDirection: 'column',
+            overflow: 'hidden',
+          }}>
+            <div style={{
+              padding: '12px 16px', borderBottom: `1px solid ${hair}`,
+              fontSize: '11px', fontWeight: 700, letterSpacing: '0.08em',
+              textTransform: 'uppercase', color: ink3,
+              fontFamily: "'DM Sans', sans-serif",
+            }}>
+              Past Conversations
+            </div>
+            <div style={{ flex: 1, overflowY: 'auto', padding: '6px 0' }}>
+              {sessions.length === 0 ? (
+                <div style={{ padding: '20px 16px', fontSize: '12px', color: ink3, lineHeight: 1.5 }}>
+                  No past conversations yet. Start chatting and they&apos;ll appear here, grouped by case.
+                </div>
+              ) : (
+                sessions.map(s => {
+                  const caseLabel = s.case_id
+                    ? cases.find(c => c.id === s.case_id)?.title ?? 'Untitled case'
+                    : 'No case'
+                  const isActive = s.id === sessionId
+                  const when = new Date(s.updated_at)
+                  const sameDay = when.toDateString() === new Date().toDateString()
+                  const label = sameDay
+                    ? when.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })
+                    : when.toLocaleDateString([], { month: 'short', day: 'numeric' })
+                  return (
+                    <button
+                      key={s.id}
+                      onClick={() => {
+                        setSessionId(s.id)
+                        if (s.case_id) setSelectedCase(s.case_id)
+                        if (s.document_id) setSelectedDoc(s.document_id)
+                        window.history.replaceState(null, '', `/chat?session=${s.id}`)
+                      }}
+                      style={{
+                        width: '100%',
+                        textAlign: 'left',
+                        padding: '8px 16px',
+                        background: isActive ? 'rgba(15,15,14,0.06)' : 'transparent',
+                        border: 'none',
+                        cursor: 'pointer',
+                        display: 'block',
+                        fontFamily: "'DM Sans', sans-serif",
+                      }}
+                    >
+                      <div style={{
+                        fontSize: '12.5px', fontWeight: 600, color: ink,
+                        whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
+                      }}>
+                        {s.title ?? 'Untitled chat'}
+                      </div>
+                      <div style={{
+                        fontSize: '10.5px', color: ink3, marginTop: '2px',
+                        whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
+                      }}>
+                        {caseLabel} · {label}
+                      </div>
+                    </button>
+                  )
+                })
+              )}
+            </div>
+          </div>
+        )}
 
         {/* ── DOC PANEL ─────────────────────────────────────────────────── */}
         <div style={{
@@ -599,6 +749,10 @@ function ChatPageInner() {
                         }} />
                       ))}
                     </span>
+                  ) : msg.role === 'assistant' ? (
+                    <div className="md-content">
+                      <ReactMarkdown remarkPlugins={[remarkGfm]}>{msg.content}</ReactMarkdown>
+                    </div>
                   ) : (
                     msg.content
                   )}
@@ -718,26 +872,85 @@ function ChatPageInner() {
             </div>
           </div>
 
-          {/* Draft chat area */}
+          {/* Draft chat area — routes the message into the main chat thread
+              and closes the panel so the user can see the response */}
           <div style={{ borderTop: `1px solid ${hair}`, padding: '12px', flexShrink: 0 }}>
-            <textarea
-              placeholder="Ask AI to revise, expand, or cite…"
-              rows={2}
-              style={{
-                width: '100%', border: `1px solid ${hair}`, background: surf2, borderRadius: rMd,
-                padding: '8px 12px', fontSize: '12.5px', fontFamily: "'DM Sans', system-ui, sans-serif",
-                color: ink, outline: 'none', resize: 'none', minHeight: '38px',
-              }}
-            />
+            <div style={{
+              display: 'flex', alignItems: 'flex-end', gap: '8px',
+              border: `1px solid ${hair}`, background: surf2, borderRadius: rMd,
+              padding: '6px 8px',
+            }}>
+              <textarea
+                value={draftInput}
+                onChange={e => setDraftInput(e.target.value)}
+                onKeyDown={e => {
+                  if (e.key === 'Enter' && !e.shiftKey) {
+                    e.preventDefault()
+                    if (draftInput.trim()) {
+                      setInput(draftInput)
+                      setDraftInput('')
+                      setShowDraft(false)
+                      setTimeout(() => sendMessage(), 0)
+                    }
+                  }
+                }}
+                placeholder="Ask AI to revise, expand, or cite…"
+                rows={2}
+                style={{
+                  flex: 1, border: 'none', background: 'none',
+                  fontSize: '12.5px', fontFamily: "'DM Sans', system-ui, sans-serif",
+                  color: ink, outline: 'none', resize: 'none', minHeight: '38px',
+                }}
+              />
+              <button
+                onClick={() => {
+                  if (!draftInput.trim()) return
+                  setInput(draftInput)
+                  setDraftInput('')
+                  setShowDraft(false)
+                  setTimeout(() => sendMessage(), 0)
+                }}
+                disabled={!draftInput.trim() || streaming}
+                title="Send (Enter)"
+                style={{
+                  width: '32px', height: '32px',
+                  background: draftInput.trim() && !streaming ? '#0F0F0E' : '#C8C8C4',
+                  border: 'none', borderRadius: rMd,
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  cursor: draftInput.trim() && !streaming ? 'pointer' : 'not-allowed',
+                  flexShrink: 0,
+                }}
+              >
+                <svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="white" strokeWidth="2">
+                  <path d="M2 8h12M8 2l6 6-6 6" />
+                </svg>
+              </button>
+            </div>
           </div>
         </div>
       </div>
 
-      {/* Global keyframe animations */}
+      {/* Global keyframe animations + markdown styling */}
       <style>{`
         @keyframes bounce { 0%,80%,100% { transform:translateY(0) } 40% { transform:translateY(-6px) } }
         @keyframes spin { from { transform: rotate(0deg) } to { transform: rotate(360deg) } }
         @keyframes fadeDown { from { opacity:0; transform:translateY(-4px) } to { opacity:1; transform:translateY(0) } }
+        .md-content > *:first-child { margin-top: 0; }
+        .md-content > *:last-child  { margin-bottom: 0; }
+        .md-content p { margin: 0 0 8px; }
+        .md-content h1, .md-content h2, .md-content h3 { margin: 12px 0 6px; font-weight: 600; line-height: 1.3; }
+        .md-content h1 { font-size: 16px; }
+        .md-content h2 { font-size: 15px; }
+        .md-content h3 { font-size: 14px; }
+        .md-content ul, .md-content ol { margin: 4px 0 8px; padding-left: 22px; }
+        .md-content li { margin: 2px 0; }
+        .md-content code { background: #F7F6F3; border: 1px solid rgba(0,0,0,0.08); padding: 1px 5px; border-radius: 4px; font-size: 12px; }
+        .md-content pre { background: #F7F6F3; border: 1px solid rgba(0,0,0,0.08); padding: 10px 12px; border-radius: 8px; overflow-x: auto; margin: 6px 0; }
+        .md-content pre code { background: none; border: none; padding: 0; font-size: 12px; }
+        .md-content blockquote { border-left: 3px solid #C9A84C; padding-left: 10px; margin: 6px 0; color: #3A3A38; }
+        .md-content a { color: #1A4FBF; text-decoration: underline; }
+        .md-content table { border-collapse: collapse; margin: 6px 0; }
+        .md-content th, .md-content td { border: 1px solid rgba(0,0,0,0.1); padding: 4px 8px; font-size: 12px; }
       `}</style>
     </div>
   )

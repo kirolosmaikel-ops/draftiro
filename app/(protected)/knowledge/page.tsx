@@ -117,6 +117,27 @@ export default function KnowledgePage() {
     loadClients()
   }, [])
 
+  // ── Poll status of any non-indexed documents ─────────────────────────────
+  useEffect(() => {
+    const pending = docs.filter(d => d.status !== 'indexed' && d.status !== 'error')
+    if (pending.length === 0) return
+    const id = setInterval(async () => {
+      const updates = await Promise.all(pending.map(async d => {
+        try {
+          const r = await fetch(`/api/documents/status/${d.id}`)
+          if (!r.ok) return null
+          const j = await r.json() as { status: string }
+          return { id: d.id, status: j.status }
+        } catch { return null }
+      }))
+      setDocs(prev => prev.map(d => {
+        const u = updates.find(x => x && x.id === d.id)
+        return u ? { ...d, status: u.status } : d
+      }))
+    }, 3000)
+    return () => clearInterval(id)
+  }, [docs])
+
   // ESC closes the New Client modal
   useEffect(() => {
     if (!showNewClient) return
@@ -630,9 +651,9 @@ export default function KnowledgePage() {
                   + New Matter
                 </button>
 
-                {/* Chat with Files */}
+                {/* Chat with Files — pass first matching case so the AI has context */}
                 <a
-                  href="/chat"
+                  href={uploadCaseId ? `/chat?case=${uploadCaseId}` : cases[0]?.id ? `/chat?case=${cases[0].id}` : '/chat'}
                   style={{
                     background: '#0F0F0E',
                     color: '#FFFFFF',
@@ -760,19 +781,22 @@ export default function KnowledgePage() {
                               {d.size_bytes ? ` · ${fileSize(d.size_bytes)}` : ''}
                               {` · `}
                               <span style={{
-                                color: d.status === 'indexed' ? '#1A7A4A' : d.status === 'error' ? '#A0281A' : '#9A9A96',
-                                fontWeight: d.status === 'indexed' ? 600 : 400,
+                                color: d.status === 'indexed' ? '#1A7A4A' : d.status === 'error' ? '#A0281A' : '#8B6914',
+                                fontWeight: 600,
                               }}>
-                                {d.status}
+                                {d.status === 'indexed' ? 'Ready ✓'
+                                  : d.status === 'error' ? 'Failed'
+                                  : d.status === 'processing' ? 'Processing…'
+                                  : `${d.status}…`}
                               </span>
                             </div>
                           </div>
 
                           {/* Action buttons */}
                           <div style={{ display: 'flex', gap: '6px', marginLeft: 'auto' }}>
-                            {/* Chat icon */}
+                            {/* Chat icon — opens the chat preselected to this document */}
                             <a
-                              href="/chat"
+                              href={`/chat?doc=${d.id}`}
                               id={btnId}
                               onMouseEnter={() => setHoveredActionBtn(btnId)}
                               onMouseLeave={() => setHoveredActionBtn(null)}
@@ -797,7 +821,31 @@ export default function KnowledgePage() {
                                 <path d="M3 3h10a1 1 0 011 1v7a1 1 0 01-1 1H5l-3 3V4a1 1 0 011-1z" />
                               </svg>
                             </a>
-                            {/* Download — coming soon */}
+                            {/* Download — opens signed Storage URL */}
+                            <button
+                              onClick={async () => {
+                                const { data: { session } } = await supabase.auth.getSession()
+                                const headers: Record<string, string> = {}
+                                if (session?.access_token) headers.Authorization = `Bearer ${session.access_token}`
+                                const r = await fetch(`/api/documents/download/${d.id}`, { headers })
+                                if (!r.ok) return
+                                const j = await r.json() as { url: string }
+                                window.open(j.url, '_blank')
+                              }}
+                              title="Download"
+                              style={{
+                                width: '28px', height: '28px',
+                                border: '1px solid rgba(0,0,0,0.07)',
+                                background: '#F7F6F3',
+                                borderRadius: '6px',
+                                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                cursor: 'pointer', color: '#6B6B68',
+                              }}
+                            >
+                              <svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.8">
+                                <path d="M8 2v9M5 8l3 3 3-3M3 14h10" />
+                              </svg>
+                            </button>
                           </div>
                         </div>
                       )

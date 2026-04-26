@@ -73,18 +73,30 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: 'Server misconfiguration: ANTHROPIC_API_KEY missing' }, { status: 500 })
   }
 
-  // ── AUTH: try cookie session first, fall back to Bearer token ──────────
-  const cookieClient = await createCookieClient()
-  let user = (await cookieClient.auth.getUser()).data.user
+  // ── AUTH: try Bearer token FIRST (fast, deterministic), cookies as fallback
+  // The cookie path can hang when @supabase/ssr can't decode the cookie —
+  // so we never wait on it unless absolutely necessary.
+  let user: { id: string; email?: string } | null = null
+  const authHeader = req.headers.get('authorization') ?? ''
+  const token = authHeader.startsWith('Bearer ') ? authHeader.slice(7) : null
+  if (token) {
+    const tmp = createClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.SUPABASE_SERVICE_ROLE_KEY!
+    )
+    user = (await tmp.auth.getUser(token)).data.user ?? null
+  }
   if (!user) {
-    const authHeader = req.headers.get('authorization') ?? ''
-    const token = authHeader.startsWith('Bearer ') ? authHeader.slice(7) : null
-    if (token) {
-      const tmp = createClient(
-        process.env.NEXT_PUBLIC_SUPABASE_URL!,
-        process.env.SUPABASE_SERVICE_ROLE_KEY!
-      )
-      user = (await tmp.auth.getUser(token)).data.user ?? null
+    // Cookie fallback with a hard timeout so a slow path can never lock the route.
+    try {
+      const cookieClient = await createCookieClient()
+      const result = await Promise.race([
+        cookieClient.auth.getUser(),
+        new Promise<{ data: { user: null } }>(r => setTimeout(() => r({ data: { user: null } }), 3000)),
+      ])
+      user = result.data.user ?? null
+    } catch {
+      user = null
     }
   }
   if (!user) {
@@ -215,6 +227,61 @@ export async function POST(req: Request) {
     }
   }
 
+  // ── 2d. Persistent case memory + cross-session continuity ────────────────
+  // When the user is chatting about a case, pull:
+  //   1) the 5 most recent distilled facts from case_memory
+  //   2) the last user/assistant pair from each of the 3 most recent OTHER
+  //      sessions for the same case (continuity without exploding the prompt)
+  let memoryBlock = ''
+  let crossSessionBlock = ''
+  if (caseId) {
+    try {
+      const { data: facts } = await supabase
+        .from('case_memory')
+        .select('fact')
+        .eq('case_id', caseId)
+        .order('created_at', { ascending: false })
+        .limit(5)
+      if (facts && facts.length > 0) {
+        memoryBlock = 'CASE MEMORY (facts you established in earlier conversations):\n' +
+          facts.map(f => `  • ${String(f.fact).slice(0, 240)}`).join('\n') + '\n\n'
+      }
+
+      // Last turn from up to 3 other recent sessions for this case
+      const { data: otherSessions } = await supabase
+        .from('chat_sessions')
+        .select('id')
+        .eq('case_id', caseId)
+        .neq('id', sessionId ?? '00000000-0000-0000-0000-000000000000')
+        .order('updated_at', { ascending: false })
+        .limit(3)
+
+      if (otherSessions && otherSessions.length > 0) {
+        const turns: string[] = []
+        for (const s of otherSessions) {
+          const { data: msgs } = await supabase
+            .from('chat_messages')
+            .select('role, content')
+            .eq('session_id', s.id)
+            .order('created_at', { ascending: false })
+            .limit(2)
+          if (msgs && msgs.length > 0) {
+            const pair = msgs.reverse()
+              .map(m => `  ${m.role === 'user' ? 'User' : 'Assistant'}: ${String(m.content).slice(0, 240)}`)
+              .join('\n')
+            turns.push(pair)
+          }
+        }
+        if (turns.length > 0) {
+          crossSessionBlock = 'OTHER RECENT CONVERSATIONS ABOUT THIS CASE:\n' +
+            turns.join('\n  ---\n') + '\n\n'
+        }
+      }
+    } catch (e) {
+      logWarn('[chat/stream] failed to pull case memory:', e)
+    }
+  }
+
   // Recent conversation history (last 6 messages) for continuity
   let historyBlock = ''
   if (sessionId) {
@@ -243,8 +310,9 @@ export async function POST(req: Request) {
   const systemPrompt = `You are an expert AI legal research assistant for a solo law practice.
 Be precise, concise, and professional. When citing document excerpts, reference [Source N] and page numbers.
 If a fact is not in the excerpts, say so clearly rather than inventing.
+You have persistent memory of this case across conversations; refer to prior facts when relevant.
 
-${caseContextBlock}${historyBlock}DOCUMENT EXCERPTS:
+${caseContextBlock}${memoryBlock}${crossSessionBlock}${historyBlock}DOCUMENT EXCERPTS:
 ${contextBlock}`
 
   // ── 4. Stream from Anthropic ─────────────────────────────────────────────
@@ -259,6 +327,7 @@ ${contextBlock}`
         controller.enqueue(encoder.encode(`data: ${JSON.stringify(data)}\n\n`))
       }
 
+      let fullText = ''
       try {
         const anthropicRes = await fetch('https://api.anthropic.com/v1/messages', {
           method: 'POST',
@@ -290,7 +359,6 @@ ${contextBlock}`
 
         const reader = anthropicRes.body!.getReader()
         const decoder = new TextDecoder()
-        let fullText = ''
 
         while (true) {
           const { done, value } = await reader.read()
@@ -360,6 +428,21 @@ ${contextBlock}`
         controller.enqueue(encoder.encode('data: [DONE]\n\n'))
       } finally {
         controller.close()
+
+        // ── 7. Memory extraction (fire-and-forget) ──────────────────────
+        // After the response stream is closed, ask Haiku to distill 0-3
+        // factual statements from this turn for future sessions about the
+        // same case. Non-blocking; failures are silent.
+        if (caseId && fullText.length > 30 && sessionId) {
+          extractAndStoreFacts({
+            supabase,
+            firmId,
+            caseId,
+            sessionId,
+            userMsg: message,
+            assistantMsg: fullText,
+          }).catch(e => logWarn('[chat/stream] memory extraction failed:', e))
+        }
       }
     },
   })
@@ -372,4 +455,57 @@ ${contextBlock}`
       Connection: 'keep-alive',
     },
   })
+}
+
+// ── Memory extraction helper (post-stream) ─────────────────────────────────
+async function extractAndStoreFacts(opts: {
+  supabase: ReturnType<typeof serviceClient>
+  firmId: string
+  caseId: string
+  sessionId: string
+  userMsg: string
+  assistantMsg: string
+}) {
+  const { supabase, firmId, caseId, sessionId, userMsg, assistantMsg } = opts
+  const prompt = `Read the exchange below and extract 0-3 short, durable factual statements about the case worth remembering for future conversations. Each fact must stand alone without context. Output ONE FACT PER LINE — no bullets, no numbering, no quotes. If nothing notable, output exactly: NONE
+
+USER: ${userMsg.slice(0, 1500)}
+ASSISTANT: ${assistantMsg.slice(0, 2500)}`
+
+  const res = await fetch('https://api.anthropic.com/v1/messages', {
+    method: 'POST',
+    headers: {
+      'x-api-key': process.env.ANTHROPIC_API_KEY!,
+      'anthropic-version': '2023-06-01',
+      'content-type': 'application/json',
+    },
+    body: JSON.stringify({
+      model: 'claude-haiku-4-5-20251001',
+      max_tokens: 256,
+      messages: [{ role: 'user', content: prompt }],
+    }),
+  })
+  if (!res.ok) {
+    logWarn('[chat/stream] Haiku memory call failed:', res.status)
+    return
+  }
+  const json = await res.json() as { content?: { text?: string }[] }
+  const text = json.content?.[0]?.text?.trim() ?? ''
+  if (!text || text === 'NONE') return
+
+  const facts = text.split('\n')
+    .map(l => l.trim())
+    .filter(l => l && l !== 'NONE' && l.length > 8 && l.length < 280)
+    .slice(0, 3)
+  if (facts.length === 0) return
+
+  const rows = facts.map(fact => ({
+    firm_id: firmId,
+    case_id: caseId,
+    fact,
+    source_session_id: sessionId,
+  }))
+  const { error } = await supabase.from('case_memory').insert(rows)
+  if (error) logWarn('[chat/stream] case_memory insert failed:', error.message)
+  else log('[chat/stream] ✓ stored', facts.length, 'memory facts')
 }
