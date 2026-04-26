@@ -467,6 +467,44 @@ export default function ProtectedLayout({ children }: { children: React.ReactNod
         )}
         {children}
       </main>
+
+      {/* Floating Ask AI button — opens /chat from anywhere in the app */}
+      {pathname !== '/chat' && !pathname?.startsWith('/onboarding') && (
+        <Link
+          href="/chat"
+          title="Ask AI"
+          style={{
+            position: 'fixed',
+            right: '24px',
+            bottom: '24px',
+            zIndex: 100,
+            width: '52px',
+            height: '52px',
+            borderRadius: '50%',
+            background: '#0F0F0E',
+            color: '#fff',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            boxShadow: '0 8px 24px rgba(0,0,0,0.18), 0 2px 6px rgba(0,0,0,0.12)',
+            textDecoration: 'none',
+            transition: 'transform 0.18s ease, box-shadow 0.18s ease',
+          }}
+          onMouseEnter={e => {
+            e.currentTarget.style.transform = 'translateY(-2px)'
+            e.currentTarget.style.boxShadow = '0 12px 32px rgba(0,0,0,0.22), 0 3px 8px rgba(0,0,0,0.14)'
+          }}
+          onMouseLeave={e => {
+            e.currentTarget.style.transform = 'translateY(0)'
+            e.currentTarget.style.boxShadow = '0 8px 24px rgba(0,0,0,0.18), 0 2px 6px rgba(0,0,0,0.12)'
+          }}
+        >
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z" />
+            <path d="M8 9h8M8 13h5" />
+          </svg>
+        </Link>
+      )}
     </div>
   )
 }

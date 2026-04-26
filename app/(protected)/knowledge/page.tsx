@@ -81,6 +81,8 @@ export default function KnowledgePage() {
   const [cases, setCases] = useState<Case[]>([])
   const [notes, setNotes] = useState('')
   const [uploading, setUploading] = useState(false)
+  const [uploadCaseId, setUploadCaseId] = useState<string>('')
+  const [uploadError, setUploadError] = useState('')
 
   // AI Summary
   const [summary, setSummary] = useState<string | null>(null)
@@ -198,16 +200,26 @@ export default function KnowledgePage() {
     const file = e.target.files?.[0]
     if (!file || !selectedClient) return
     setUploading(true)
-    const form = new FormData()
-    form.append('file', file)
-    form.append('clientId', selectedClient.id)
-    await fetch('/api/documents/upload', { method: 'POST', body: form })
-    const { data } = await supabase
-      .from('documents')
-      .select('id,name,mime_type,size_bytes,status,created_at')
-      .eq('client_id', selectedClient.id)
-      .order('created_at', { ascending: false })
-    setDocs(data ?? [])
+    setUploadError('')
+    try {
+      const form = new FormData()
+      form.append('file', file)
+      form.append('clientId', selectedClient.id)
+      if (uploadCaseId) form.append('caseId', uploadCaseId)
+      const res = await fetch('/api/documents/upload', { method: 'POST', body: form })
+      if (!res.ok) {
+        const j = await res.json().catch(() => ({}))
+        setUploadError(j.error ?? `Upload failed (${res.status})`)
+      }
+      const { data } = await supabase
+        .from('documents')
+        .select('id,name,mime_type,size_bytes,status,created_at')
+        .eq('client_id', selectedClient.id)
+        .order('created_at', { ascending: false })
+      setDocs(data ?? [])
+    } catch (err) {
+      setUploadError(err instanceof Error ? err.message : 'Upload failed')
+    }
     setUploading(false)
     e.target.value = ''
   }
@@ -538,6 +550,32 @@ export default function KnowledgePage() {
                   )}
                 </div>
 
+                {/* Optional: attach upload to a specific matter */}
+                {cases.length > 0 && (
+                  <select
+                    value={uploadCaseId}
+                    onChange={e => setUploadCaseId(e.target.value)}
+                    disabled={uploading}
+                    style={{
+                      height: '30px',
+                      border: '1px solid rgba(0,0,0,0.07)',
+                      borderRadius: '10px',
+                      padding: '0 10px',
+                      fontSize: '12px',
+                      color: '#3A3A38',
+                      background: '#fff',
+                      fontFamily: "'DM Sans', sans-serif",
+                      cursor: 'pointer',
+                      outline: 'none',
+                    }}
+                  >
+                    <option value="">Attach to: client (no matter)</option>
+                    {cases.map(c => (
+                      <option key={c.id} value={c.id}>Attach to: {c.title}</option>
+                    ))}
+                  </select>
+                )}
+
                 {/* Upload button */}
                 <label style={{
                   background: 'none',
@@ -649,6 +687,16 @@ export default function KnowledgePage() {
 
               {/* Tab body */}
               <div style={{ flex: 1, overflowY: 'auto', padding: '20px 24px' }}>
+
+                {uploadError && (
+                  <div style={{
+                    padding: '10px 14px', borderRadius: '8px', marginBottom: '14px',
+                    background: '#FFE8E6', color: '#A0281A', border: '1px solid #FFBDBA',
+                    fontSize: '13px', fontFamily: "'DM Sans', sans-serif",
+                  }}>
+                    ⚠ {uploadError}
+                  </div>
+                )}
 
                 {/* Documents tab */}
                 {tab === 'documents' && (

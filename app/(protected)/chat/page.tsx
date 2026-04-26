@@ -192,7 +192,12 @@ function ChatPageInner() {
       const res = await fetch('/api/chat/stream', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ message: text, sessionId: sid, documentId: selectedDoc, caseId: selectedCase }),
+        body: JSON.stringify({
+          message: text,
+          sessionId: sid,
+          documentId: selectedDoc || undefined,
+          caseId: selectedCase || undefined,
+        }),
         signal: abortRef.current.signal,
       })
 
@@ -615,8 +620,14 @@ function ChatPageInner() {
                 value={input}
                 onChange={e => setInput(e.target.value)}
                 onKeyDown={handleKey}
-                placeholder={selectedDoc ? 'Ask a question about this document…' : 'Select a document first…'}
-                disabled={!selectedDoc || streaming}
+                placeholder={
+                  selectedDoc
+                    ? 'Ask a question about this document…'
+                    : selectedCase
+                      ? 'Ask anything about this case…'
+                      : 'Ask a legal question — select a case or document for grounded answers'
+                }
+                disabled={streaming}
                 rows={1}
                 style={{
                   flex: 1, border: 'none', background: 'none', outline: 'none',
@@ -626,15 +637,19 @@ function ChatPageInner() {
               />
               <button
                 onClick={sendMessage}
-                disabled={!input.trim() || !selectedDoc || streaming}
+                disabled={!input.trim() || streaming}
+                title="Send (Enter)"
                 style={{
-                  width: '32px', height: '32px', background: ink, border: 'none',
+                  width: '36px', height: '36px',
+                  background: input.trim() && !streaming ? '#0F0F0E' : '#C8C8C4',
+                  border: 'none',
                   borderRadius: rMd, display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  cursor: input.trim() && selectedDoc && !streaming ? 'pointer' : 'not-allowed',
-                  opacity: input.trim() && selectedDoc && !streaming ? 1 : 0.4, flexShrink: 0,
+                  cursor: input.trim() && !streaming ? 'pointer' : 'not-allowed',
+                  flexShrink: 0,
+                  transition: 'background 0.15s ease',
                 }}
               >
-                <svg viewBox="0 0 16 16" fill="none" stroke="white" strokeWidth="2" width="14" height="14">
+                <svg viewBox="0 0 16 16" fill="none" stroke="white" strokeWidth="2" width="15" height="15">
                   <path d="M2 8h12M8 2l6 6-6 6" />
                 </svg>
               </button>

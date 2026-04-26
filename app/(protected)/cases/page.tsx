@@ -310,8 +310,11 @@ function Modal({ title, onClose, children }: { title: string; onClose: () => voi
   )
 }
 
-function CaseRow({ c }: { c: Case }) {
+const STATUS_OPTIONS: Case['status'][] = ['active', 'pending', 'closed', 'archived']
+
+function CaseRow({ c, onStatusChange }: { c: Case; onStatusChange: (id: string, status: Case['status']) => void }) {
   const [hovered, setHovered] = useState(false)
+  const [updating, setUpdating] = useState(false)
   return (
     <div
       onMouseEnter={() => setHovered(true)}
@@ -370,22 +373,41 @@ function CaseRow({ c }: { c: Case }) {
         </div>
       </div>
 
-      {/* Status badge */}
-      <span
+      {/* Status badge — click to change */}
+      <select
+        value={c.status}
+        disabled={updating}
+        onChange={async e => {
+          const next = e.target.value as Case['status']
+          if (next === c.status) return
+          setUpdating(true)
+          await onStatusChange(c.id, next)
+          setUpdating(false)
+        }}
+        title="Change status"
         style={{
           fontSize: '11px',
           fontWeight: 600,
-          padding: '3px 10px',
+          padding: '3px 22px 3px 10px',
           borderRadius: '99px',
           background: STATUS_BADGE_BG[c.status] ?? '#F7F6F3',
           color: STATUS_BADGE_COLOR[c.status] ?? '#6B6B68',
           fontFamily: 'DM Sans, sans-serif',
           flexShrink: 0,
           textTransform: 'capitalize',
+          border: 'none',
+          appearance: 'none',
+          cursor: updating ? 'wait' : 'pointer',
+          outline: 'none',
+          backgroundImage: `url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='10' height='10' viewBox='0 0 16 16' fill='none' stroke='%236B6B68' stroke-width='2'><path d='M4 6l4 4 4-4'/></svg>")`,
+          backgroundRepeat: 'no-repeat',
+          backgroundPosition: 'right 6px center',
         }}
       >
-        {c.status}
-      </span>
+        {STATUS_OPTIONS.map(s => (
+          <option key={s} value={s}>{s.charAt(0).toUpperCase() + s.slice(1)}</option>
+        ))}
+      </select>
 
       {/* Chat link */}
       <Link
@@ -528,6 +550,23 @@ export default function CasesPage() {
       setShowNewCase(false)
     }
     setSavingCase(false)
+  }
+
+  async function handleStatusChange(id: string, status: Case['status']) {
+    // Optimistic update
+    setCases(prev => prev.map(c => c.id === id ? { ...c, status } : c))
+    const { error } = await supabase
+      .from('cases')
+      .update({ status, updated_at: new Date().toISOString() })
+      .eq('id', id)
+    if (error) {
+      // Revert on failure
+      const { data } = await supabase
+        .from('cases')
+        .select('id,title,case_number,status,practice_area,client_id,updated_at,created_at')
+        .order('updated_at', { ascending: false })
+      setCases(data ?? [])
+    }
   }
 
   async function handleCreateClient(e: React.FormEvent) {
@@ -797,7 +836,7 @@ export default function CasesPage() {
           ) : (
             <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
               {filtered.map(c => (
-                <CaseRow key={c.id} c={c} />
+                <CaseRow key={c.id} c={c} onStatusChange={handleStatusChange} />
               ))}
             </div>
           )}

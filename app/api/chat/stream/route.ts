@@ -167,40 +167,73 @@ export async function POST(req: Request) {
     }
   }
 
-  // ── 2b. Guard: document selected but zero chunks found ───────────────────
-  if (documentId && chunks.length === 0) {
-    const encoder0 = new TextEncoder()
-    const zeroStream = new ReadableStream({
-      start(controller) {
-        controller.enqueue(encoder0.encode(
-          `data: ${JSON.stringify({ type: 'text', content: "This document hasn't been indexed yet. Please wait for processing to complete, then try again." })}\n\n`
-        ))
-        controller.enqueue(encoder0.encode('data: [DONE]\n\n'))
-        controller.close()
-      },
-    })
-    return new Response(zeroStream, {
-      headers: {
-        'Content-Type': 'text/event-stream',
-        'Cache-Control': 'no-cache, no-transform',
-        'X-Accel-Buffering': 'no',
-        Connection: 'keep-alive',
-      },
-    })
+  // (No early-return for missing doc chunks — the model can still answer
+  // from case metadata + general knowledge, and explicitly flag that no
+  // document text was retrieved.)
+
+  // ── 2c. Pull case-level context when a case is selected ──────────────────
+  // The model gets: case metadata, full client info, every document name in
+  // the case, and the last 6 messages from this session — so it 'remembers'
+  // the case beyond just the retrieved chunks.
+  let caseContextBlock = ''
+  if (caseId) {
+    try {
+      const { data: caseRow } = await supabase
+        .from('cases')
+        .select('title, status, practice_area, case_number, clients(name, company, email)')
+        .eq('id', caseId)
+        .single()
+      const { data: caseDocs } = await supabase
+        .from('documents')
+        .select('name, status, page_count')
+        .eq('case_id', caseId)
+        .limit(50)
+
+      if (caseRow) {
+        const client = (caseRow as { clients?: { name?: string; company?: string; email?: string } }).clients
+        const clientStr = client
+          ? `${client.name ?? ''}${client.company ? ` (${client.company})` : ''}${client.email ? ` <${client.email}>` : ''}`.trim()
+          : 'No client on file'
+        const docList = (caseDocs ?? [])
+          .map(d => `  - ${d.name} (${d.status === 'indexed' ? 'indexed' : 'pending'}${d.page_count ? `, ${d.page_count} pages` : ''})`)
+          .join('\n') || '  (no documents yet)'
+        caseContextBlock = `CASE FILE\n  Title: ${caseRow.title}\n  Practice area: ${caseRow.practice_area ?? 'unspecified'}\n  Status: ${caseRow.status ?? 'unknown'}\n  Client: ${clientStr}\nDOCUMENTS IN CASE:\n${docList}\n\n`
+      }
+    } catch (e) {
+      logWarn('[chat/stream] failed to pull case context:', e)
+    }
+  }
+
+  // Recent conversation history (last 6 messages) for continuity
+  let historyBlock = ''
+  if (sessionId) {
+    try {
+      const { data: prior } = await supabase
+        .from('chat_messages')
+        .select('role, content')
+        .eq('session_id', sessionId)
+        .order('created_at', { ascending: false })
+        .limit(6)
+      if (prior && prior.length > 0) {
+        historyBlock = 'RECENT CONVERSATION:\n' +
+          prior.reverse().map(m => `${m.role === 'user' ? 'User' : 'Assistant'}: ${String(m.content).slice(0, 400)}`).join('\n') +
+          '\n\n'
+      }
+    } catch { /* non-fatal */ }
   }
 
   // ── 3. Build system prompt ───────────────────────────────────────────────
   const contextBlock = chunks.length > 0
     ? chunks.map((c, i) => `[Source ${i + 1} — Page ${c.page_number}]\n${c.content}`).join('\n\n---\n\n')
-    : 'No document context available. Answer from general legal knowledge but note that no case documents were found.'
+    : (caseId || documentId)
+      ? 'No matching document excerpts found. Answer from general legal knowledge and the case metadata above; flag that no document text was retrieved.'
+      : 'The user has not selected a specific case or document. Answer as a general legal research assistant. If the question would benefit from case-specific context, suggest they select a case from the dropdown.'
 
   const systemPrompt = `You are an expert AI legal research assistant for a solo law practice.
-Your answers are grounded in the provided document excerpts below.
-When answering, cite specific [Source N] and page numbers where relevant.
-If the information is not in the provided excerpts, say so clearly.
-Be precise, concise, and professional.
+Be precise, concise, and professional. When citing document excerpts, reference [Source N] and page numbers.
+If a fact is not in the excerpts, say so clearly rather than inventing.
 
-DOCUMENT EXCERPTS:
+${caseContextBlock}${historyBlock}DOCUMENT EXCERPTS:
 ${contextBlock}`
 
   // ── 4. Stream from Anthropic ─────────────────────────────────────────────
