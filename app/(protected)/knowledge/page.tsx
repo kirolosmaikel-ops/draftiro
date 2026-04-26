@@ -206,7 +206,13 @@ export default function KnowledgePage() {
       form.append('file', file)
       form.append('clientId', selectedClient.id)
       if (uploadCaseId) form.append('caseId', uploadCaseId)
-      const res = await fetch('/api/documents/upload', { method: 'POST', body: form })
+      // Send the access token explicitly (cookie auth has been unreliable)
+      const { data: { session } } = await supabase.auth.getSession()
+      const res = await fetch('/api/documents/upload', {
+        method: 'POST',
+        body: form,
+        headers: session?.access_token ? { Authorization: `Bearer ${session.access_token}` } : undefined,
+      })
       if (!res.ok) {
         const j = await res.json().catch(() => ({}))
         setUploadError(j.error ?? `Upload failed (${res.status})`)

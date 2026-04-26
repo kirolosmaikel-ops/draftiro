@@ -73,11 +73,22 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: 'Server misconfiguration: ANTHROPIC_API_KEY missing' }, { status: 500 })
   }
 
-  // ── AUTH: require a logged-in user, resolve their firm_id from cookies ───
+  // ── AUTH: try cookie session first, fall back to Bearer token ──────────
   const cookieClient = await createCookieClient()
-  const { data: { user } } = await cookieClient.auth.getUser()
+  let user = (await cookieClient.auth.getUser()).data.user
   if (!user) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    const authHeader = req.headers.get('authorization') ?? ''
+    const token = authHeader.startsWith('Bearer ') ? authHeader.slice(7) : null
+    if (token) {
+      const tmp = createClient(
+        process.env.NEXT_PUBLIC_SUPABASE_URL!,
+        process.env.SUPABASE_SERVICE_ROLE_KEY!
+      )
+      user = (await tmp.auth.getUser(token)).data.user ?? null
+    }
+  }
+  if (!user) {
+    return NextResponse.json({ error: 'Unauthorized — please sign in again.' }, { status: 401 })
   }
 
   const supabase = serviceClient()

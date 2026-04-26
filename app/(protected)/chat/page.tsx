@@ -189,9 +189,15 @@ function ChatPageInner() {
 
     try {
       abortRef.current = new AbortController()
+      // Pass current access token explicitly — cookie-based auth has been
+      // unreliable in this project. See lib/auth-fetch.ts.
+      const { data: { session } } = await supabase.auth.getSession()
       const res = await fetch('/api/chat/stream', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          ...(session?.access_token ? { Authorization: `Bearer ${session.access_token}` } : {}),
+        },
         body: JSON.stringify({
           message: text,
           sessionId: sid,
@@ -201,7 +207,14 @@ function ChatPageInner() {
         signal: abortRef.current.signal,
       })
 
-      if (!res.ok) throw new Error(await res.text())
+      if (!res.ok) {
+        let msg = `Request failed (${res.status})`
+        try {
+          const j = await res.json()
+          if (j?.error) msg = j.error
+        } catch { /* not JSON */ }
+        throw new Error(msg)
+      }
       if (!res.body) throw new Error('No body')
 
       const reader = res.body.getReader()
@@ -232,8 +245,9 @@ function ChatPageInner() {
       }
     } catch (err: unknown) {
       if (err instanceof Error && err.name !== 'AbortError') {
+        const msg = err.message || 'Something went wrong.'
         setMessages(prev => prev.map(m =>
-          m.id === assistantId ? { ...m, content: 'Sorry, an error occurred. Please try again.' } : m
+          m.id === assistantId ? { ...m, content: `⚠ ${msg}` } : m
         ))
       }
     } finally {

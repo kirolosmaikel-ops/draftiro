@@ -112,13 +112,17 @@ export default function EditorPage() {
   async function saveDraft(body = content, t = title) {
     setSaveStatus('saving')
     try {
-      const { data: { user } } = await supabase.auth.getUser()
-      if (!user) { setSaveStatus('error'); return }
+      const { data: { session } } = await supabase.auth.getSession()
+      if (!session?.user) { setSaveStatus('error'); return }
+      const headers: Record<string, string> = {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${session.access_token}`,
+      }
 
       if (activeDraft) {
         await fetch('/api/editor/save', {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          headers,
           body: JSON.stringify({ id: activeDraft.id, title: t, content: body }),
         })
         setDrafts(prev =>
@@ -130,7 +134,7 @@ export default function EditorPage() {
       } else {
         const res = await fetch('/api/editor/save', {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          headers,
           body: JSON.stringify({ title: t, content: body }),
         })
         const json = await res.json()
