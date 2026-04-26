@@ -21,7 +21,7 @@ export default function LandingPage() {
         </div>
         <a href="#features" style={{ fontSize: '13.5px', color: '#6B6B68', textDecoration: 'none', fontWeight: 500 }}>Features</a>
         <a href="#how-it-works" style={{ fontSize: '13.5px', color: '#6B6B68', textDecoration: 'none', fontWeight: 500 }}>How it works</a>
-        <a href="#pricing" style={{ fontSize: '13.5px', color: '#6B6B68', textDecoration: 'none', fontWeight: 500 }}>Pricing</a>
+        <Link href="/pricing" style={{ fontSize: '13.5px', color: '#6B6B68', textDecoration: 'none', fontWeight: 500 }}>Pricing</Link>
         <Link href="/login" style={{
           height: '34px', background: '#0F0F0E', color: '#fff', borderRadius: '10px',
           padding: '0 16px', fontSize: '13px', fontWeight: 600, textDecoration: 'none',
@@ -61,7 +61,7 @@ export default function LandingPage() {
             Upload case files. Chat with your documents. Draft briefs in minutes — not hours.
           </p>
           <div style={{ display: 'flex', gap: '12px', justifyContent: 'center', flexWrap: 'wrap' }}>
-            <Link href="/login" style={{
+            <Link href="/pricing" style={{
               height: '52px', background: '#C9A84C', color: '#0F0F0E', borderRadius: '12px',
               padding: '0 28px', fontSize: '15px', fontWeight: 700, textDecoration: 'none',
               display: 'inline-flex', alignItems: 'center', gap: '8px',
@@ -77,6 +77,22 @@ export default function LandingPage() {
               See how it works
             </a>
           </div>
+
+          {/* Social proof */}
+          <div style={{
+            marginTop: '36px',
+            display: 'inline-flex', alignItems: 'center', gap: '10px',
+            padding: '8px 16px',
+            background: 'rgba(255,255,255,0.06)',
+            border: '1px solid rgba(255,255,255,0.1)',
+            borderRadius: '99px',
+            fontSize: '12.5px',
+            color: 'rgba(255,255,255,0.7)',
+            fontFamily: 'DM Sans, sans-serif',
+          }}>
+            <span style={{ color: '#C9A84C', fontSize: '13px', letterSpacing: '0.5px' }}>★★★★★</span>
+            Built with feedback from 30+ solo attorneys
+          </div>
         </div>
 
         {/* Stats */}
@@ -84,7 +100,7 @@ export default function LandingPage() {
           {[
             { num: '40%', label: 'Less research time' },
             { num: '38', label: 'States covered' },
-            { num: 'SOC2', label: 'Type II certified' },
+            { num: '256-bit', label: 'Encrypted at rest & in transit' },
             { num: '< 2 min', label: 'Per document upload' },
           ].map(({ num, label }) => (
             <div key={label} style={{ textAlign: 'center' }}>
@@ -193,7 +209,7 @@ export default function LandingPage() {
           <p style={{ fontSize: '14px', color: '#6B6B68', lineHeight: 1.65, marginBottom: '40px' }}>
             Start with a 14-day free trial. No credit card required.
           </p>
-          <Link href="/login" style={{
+          <Link href="/pricing" style={{
             display: 'inline-flex', alignItems: 'center', gap: '8px',
             height: '52px', background: '#0F0F0E', color: '#fff', borderRadius: '12px',
             padding: '0 28px', fontSize: '15px', fontWeight: 600, textDecoration: 'none',
@@ -211,7 +227,7 @@ export default function LandingPage() {
         <p style={{ fontSize: '16px', color: 'rgba(255,255,255,0.5)', marginBottom: '36px' }}>
           Join attorneys who spend less time on research and more time winning.
         </p>
-        <Link href="/login" style={{
+        <Link href="/pricing" style={{
           display: 'inline-flex', alignItems: 'center', gap: '8px',
           height: '52px', background: '#C9A84C', color: '#0F0F0E', borderRadius: '12px',
           padding: '0 28px', fontSize: '15px', fontWeight: 700, textDecoration: 'none',
@@ -229,8 +245,8 @@ export default function LandingPage() {
         </div>
         <div style={{ fontSize: '12px', color: 'rgba(255,255,255,0.28)' }}>© 2026 Draftiro. For solo attorneys.</div>
         <div style={{ display: 'flex', gap: '24px' }}>
-          {['Privacy', 'Terms', 'Contact'].map(l => (
-            <a key={l} href="#" style={{ fontSize: '12px', color: 'rgba(255,255,255,0.35)', textDecoration: 'none' }}>{l}</a>
+          {[['Privacy', '/privacy'], ['Terms', '/terms'], ['Cancellation', '/cancellation']].map(([l, h]) => (
+            <Link key={l} href={h} style={{ fontSize: '12px', color: 'rgba(255,255,255,0.35)', textDecoration: 'none' }}>{l}</Link>
           ))}
         </div>
       </footer>

@@ -11,8 +11,35 @@ export async function POST(req: Request) {
   const body = await req.json() as { id?: string; title: string; content: string; caseId?: string }
   const { id, title, content, caseId } = body
 
-  const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
+  // Hard size caps — stops accidental megapaste / DoS / runaway clipboard.
+  if (typeof content !== 'string' || content.length > 1_000_000) {
+    return NextResponse.json({ error: 'Draft content exceeds 1 MB. Trim before saving.' }, { status: 413 })
+  }
+  if (typeof title !== 'string' || title.length > 200) {
+    return NextResponse.json({ error: 'Title must be 200 characters or less.' }, { status: 400 })
+  }
+
+  // Bearer first (deterministic), cookies as fallback (cookies can hang)
+  let user: { id: string; email?: string } | null = null
+  const authHeader = req.headers.get('authorization') ?? ''
+  const token = authHeader.startsWith('Bearer ') ? authHeader.slice(7) : null
+  if (token) {
+    const tmp = serviceClientDirect(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.SUPABASE_SERVICE_ROLE_KEY!
+    )
+    user = (await tmp.auth.getUser(token)).data.user ?? null
+  }
+  if (!user) {
+    try {
+      const supabase = await createClient()
+      const result = await Promise.race([
+        supabase.auth.getUser(),
+        new Promise<{ data: { user: null } }>(r => setTimeout(() => r({ data: { user: null } }), 3000)),
+      ])
+      user = result.data.user ?? null
+    } catch { user = null }
+  }
   if (!user) {
     console.warn('[editor/save] ✗ not authenticated')
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })

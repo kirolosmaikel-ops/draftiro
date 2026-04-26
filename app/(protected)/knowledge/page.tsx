@@ -76,11 +76,13 @@ export default function KnowledgePage() {
   const [selectedClient, setSelectedClient] = useState<Client | null>(null)
 
   // Right-column state
-  const [tab, setTab] = useState<'documents' | 'notes' | 'ai-summary' | 'timeline'>('documents')
+  const [tab, setTab] = useState<'documents' | 'notes' | 'ai-summary'>('documents')
   const [docs, setDocs] = useState<Doc[]>([])
   const [cases, setCases] = useState<Case[]>([])
   const [notes, setNotes] = useState('')
   const [uploading, setUploading] = useState(false)
+  const [uploadCaseId, setUploadCaseId] = useState<string>('')
+  const [uploadError, setUploadError] = useState('')
 
   // AI Summary
   const [summary, setSummary] = useState<string | null>(null)
@@ -88,6 +90,7 @@ export default function KnowledgePage() {
 
   // Modals
   const [showNewClient, setShowNewClient] = useState(false)
+  const newClientBackdropRef = useRef(false)
   const [showNewMatter, setShowNewMatter] = useState(false)
 
   // New-client form
@@ -113,6 +116,35 @@ export default function KnowledgePage() {
   useEffect(() => {
     loadClients()
   }, [])
+
+  // ── Poll status of any non-indexed documents ─────────────────────────────
+  useEffect(() => {
+    const pending = docs.filter(d => d.status !== 'indexed' && d.status !== 'error')
+    if (pending.length === 0) return
+    const id = setInterval(async () => {
+      const updates = await Promise.all(pending.map(async d => {
+        try {
+          const r = await fetch(`/api/documents/status/${d.id}`)
+          if (!r.ok) return null
+          const j = await r.json() as { status: string }
+          return { id: d.id, status: j.status }
+        } catch { return null }
+      }))
+      setDocs(prev => prev.map(d => {
+        const u = updates.find(x => x && x.id === d.id)
+        return u ? { ...d, status: u.status } : d
+      }))
+    }, 3000)
+    return () => clearInterval(id)
+  }, [docs])
+
+  // ESC closes the New Client modal
+  useEffect(() => {
+    if (!showNewClient) return
+    const handler = (e: KeyboardEvent) => { if (e.key === 'Escape') resetNewClientModal() }
+    document.addEventListener('keydown', handler)
+    return () => document.removeEventListener('keydown', handler)
+  }, [showNewClient])
 
   async function loadClients() {
     setLoadError(null)
@@ -183,25 +215,50 @@ export default function KnowledgePage() {
     setSummaryLoading(false)
   }
 
-  // ── Upload document ──────────────────────────────────────────────────────
+  // ── Upload document(s) — supports multi-file + drag/drop ────────────────
 
-  async function handleUpload(e: React.ChangeEvent<HTMLInputElement>) {
-    const file = e.target.files?.[0]
-    if (!file || !selectedClient) return
+  async function uploadFiles(files: FileList | File[]) {
+    if (!selectedClient || files.length === 0) return
     setUploading(true)
-    const form = new FormData()
-    form.append('file', file)
-    form.append('clientId', selectedClient.id)
-    await fetch('/api/documents/upload', { method: 'POST', body: form })
+    setUploadError('')
+    const { data: { session } } = await supabase.auth.getSession()
+    const headers = session?.access_token ? { Authorization: `Bearer ${session.access_token}` } : undefined
+
+    const errors: string[] = []
+    for (const file of Array.from(files)) {
+      try {
+        const form = new FormData()
+        form.append('file', file)
+        form.append('clientId', selectedClient.id)
+        if (uploadCaseId) form.append('caseId', uploadCaseId)
+        const res = await fetch('/api/documents/upload', { method: 'POST', body: form, headers })
+        if (!res.ok) {
+          const j = await res.json().catch(() => ({}))
+          errors.push(`${file.name}: ${j.error ?? `failed (${res.status})`}`)
+        }
+      } catch (err) {
+        errors.push(`${file.name}: ${err instanceof Error ? err.message : 'failed'}`)
+      }
+    }
+    // Refresh docs list
     const { data } = await supabase
       .from('documents')
       .select('id,name,mime_type,size_bytes,status,created_at')
       .eq('client_id', selectedClient.id)
       .order('created_at', { ascending: false })
     setDocs(data ?? [])
+    if (errors.length > 0) setUploadError(errors.join(' · '))
     setUploading(false)
+  }
+
+  async function handleUpload(e: React.ChangeEvent<HTMLInputElement>) {
+    if (!e.target.files) return
+    await uploadFiles(e.target.files)
     e.target.value = ''
   }
+
+  // Drag-drop state for the documents tab area
+  const [isDragOver, setIsDragOver] = useState(false)
 
   // ── Create client ────────────────────────────────────────────────────────
 
@@ -503,7 +560,7 @@ export default function KnowledgePage() {
             </div>
           ) : (
             <>
-              {/* Client header */}
+              {/* Client header — wraps to a second row when actions don't fit */}
               <div style={{
                 padding: '18px 24px',
                 borderBottom: '1px solid rgba(0,0,0,0.07)',
@@ -511,6 +568,7 @@ export default function KnowledgePage() {
                 alignItems: 'center',
                 gap: '12px',
                 flexShrink: 0,
+                flexWrap: 'wrap',
               }}>
                 <div style={{ flex: 1, minWidth: 0 }}>
                   <div style={{
@@ -528,6 +586,32 @@ export default function KnowledgePage() {
                     </div>
                   )}
                 </div>
+
+                {/* Optional: attach upload to a specific matter */}
+                {cases.length > 0 && (
+                  <select
+                    value={uploadCaseId}
+                    onChange={e => setUploadCaseId(e.target.value)}
+                    disabled={uploading}
+                    style={{
+                      height: '30px',
+                      border: '1px solid rgba(0,0,0,0.07)',
+                      borderRadius: '10px',
+                      padding: '0 10px',
+                      fontSize: '12px',
+                      color: '#3A3A38',
+                      background: '#fff',
+                      fontFamily: "'DM Sans', sans-serif",
+                      cursor: 'pointer',
+                      outline: 'none',
+                    }}
+                  >
+                    <option value="">Attach to: client (no matter)</option>
+                    {cases.map(c => (
+                      <option key={c.id} value={c.id}>Attach to: {c.title}</option>
+                    ))}
+                  </select>
+                )}
 
                 {/* Upload button */}
                 <label style={{
@@ -550,6 +634,7 @@ export default function KnowledgePage() {
                   <input
                     type="file"
                     accept=".pdf,.docx,.txt"
+                    multiple
                     style={{ display: 'none' }}
                     onChange={handleUpload}
                     disabled={uploading}
@@ -577,9 +662,9 @@ export default function KnowledgePage() {
                   + New Matter
                 </button>
 
-                {/* Chat with Files */}
+                {/* Chat with Files — pass first matching case so the AI has context */}
                 <a
-                  href="/chat"
+                  href={uploadCaseId ? `/chat?case=${uploadCaseId}` : cases[0]?.id ? `/chat?case=${cases[0].id}` : '/chat'}
                   style={{
                     background: '#0F0F0E',
                     color: '#FFFFFF',
@@ -608,8 +693,8 @@ export default function KnowledgePage() {
                 background: '#FFFFFF',
                 flexShrink: 0,
               }}>
-                {(['documents', 'notes', 'ai-summary', 'timeline'] as const).map(t => {
-                  const label = t === 'ai-summary' ? 'AI Summary' : t === 'documents' ? 'Documents' : t === 'notes' ? 'Notes' : 'Timeline'
+                {(['documents', 'notes', 'ai-summary'] as const).map(t => {
+                  const label = t === 'ai-summary' ? 'AI Summary' : t === 'documents' ? 'Documents' : 'Notes'
                   const isActive = tab === t
                   const isHov = hoveredTab === t
                   return (
@@ -638,21 +723,77 @@ export default function KnowledgePage() {
                 })}
               </div>
 
-              {/* Tab body */}
-              <div style={{ flex: 1, overflowY: 'auto', padding: '20px 24px' }}>
+              {/* Tab body — drag/drop receives files anywhere on the page body */}
+              <div
+                style={{ flex: 1, overflowY: 'auto', padding: '20px 24px', position: 'relative' }}
+                onDragOver={e => {
+                  if (tab !== 'documents') return
+                  e.preventDefault()
+                  setIsDragOver(true)
+                }}
+                onDragLeave={e => {
+                  if (e.currentTarget === e.target) setIsDragOver(false)
+                }}
+                onDrop={e => {
+                  e.preventDefault()
+                  setIsDragOver(false)
+                  if (tab !== 'documents') return
+                  if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
+                    uploadFiles(e.dataTransfer.files)
+                  }
+                }}
+              >
+                {/* Drag overlay */}
+                {isDragOver && tab === 'documents' && (
+                  <div style={{
+                    position: 'absolute', inset: '12px',
+                    background: 'rgba(201,168,76,0.12)',
+                    border: '2px dashed #C9A84C',
+                    borderRadius: '14px',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    fontSize: '14px', fontWeight: 600, color: '#8B6914',
+                    pointerEvents: 'none', zIndex: 5,
+                    fontFamily: "'DM Sans', sans-serif",
+                  }}>
+                    📄 Drop to upload
+                  </div>
+                )}
+
+                {uploadError && (
+                  <div style={{
+                    padding: '10px 14px', borderRadius: '8px', marginBottom: '14px',
+                    background: '#FFE8E6', color: '#A0281A', border: '1px solid #FFBDBA',
+                    fontSize: '13px', fontFamily: "'DM Sans', sans-serif",
+                  }}>
+                    ⚠ {uploadError}
+                  </div>
+                )}
 
                 {/* Documents tab */}
                 {tab === 'documents' && (
                   docs.length === 0 ? (
-                    <div style={{ textAlign: 'center', padding: '48px 0', color: '#9A9A96', fontSize: '13.5px' }}>
-                      No documents yet. Upload one above.
+                    <div style={{
+                      textAlign: 'center',
+                      padding: '60px 24px',
+                      border: '2px dashed rgba(0,0,0,0.10)',
+                      borderRadius: '14px',
+                      color: '#6B6B68',
+                      fontFamily: "'DM Sans', sans-serif",
+                    }}>
+                      <div style={{ fontSize: '32px', marginBottom: '10px', lineHeight: 1 }}>📂</div>
+                      <div style={{ fontSize: '14.5px', fontWeight: 600, color: '#0F0F0E', marginBottom: '4px' }}>
+                        No documents yet
+                      </div>
+                      <div style={{ fontSize: '13px', lineHeight: 1.55, marginBottom: '14px' }}>
+                        Drag &amp; drop files here, or use the <strong>↑ Upload</strong> button above.<br />
+                        Supports PDF, DOCX, TXT.
+                      </div>
                     </div>
                   ) : (
                     docs.map(d => {
                       const ext = fileExt(d.name)
                       const isPdf = ext === 'PDF'
                       const btnId = `chat-${d.id}`
-                      const dlId = `dl-${d.id}`
                       return (
                         <div
                           key={d.id}
@@ -698,19 +839,22 @@ export default function KnowledgePage() {
                               {d.size_bytes ? ` · ${fileSize(d.size_bytes)}` : ''}
                               {` · `}
                               <span style={{
-                                color: d.status === 'ready' ? '#1A7A4A' : '#9A9A96',
-                                fontWeight: d.status === 'ready' ? 600 : 400,
+                                color: d.status === 'indexed' ? '#1A7A4A' : d.status === 'error' ? '#A0281A' : '#8B6914',
+                                fontWeight: 600,
                               }}>
-                                {d.status}
+                                {d.status === 'indexed' ? 'Ready ✓'
+                                  : d.status === 'error' ? 'Failed'
+                                  : d.status === 'processing' ? 'Processing…'
+                                  : `${d.status}…`}
                               </span>
                             </div>
                           </div>
 
                           {/* Action buttons */}
                           <div style={{ display: 'flex', gap: '6px', marginLeft: 'auto' }}>
-                            {/* Chat icon */}
+                            {/* Chat icon — opens the chat preselected to this document */}
                             <a
-                              href="/chat"
+                              href={`/chat?doc=${d.id}`}
                               id={btnId}
                               onMouseEnter={() => setHoveredActionBtn(btnId)}
                               onMouseLeave={() => setHoveredActionBtn(null)}
@@ -735,29 +879,29 @@ export default function KnowledgePage() {
                                 <path d="M3 3h10a1 1 0 011 1v7a1 1 0 01-1 1H5l-3 3V4a1 1 0 011-1z" />
                               </svg>
                             </a>
-                            {/* Download icon */}
+                            {/* Download — opens signed Storage URL */}
                             <button
-                              id={dlId}
-                              onMouseEnter={() => setHoveredActionBtn(dlId)}
-                              onMouseLeave={() => setHoveredActionBtn(null)}
-                              style={{
-                                width: '28px',
-                                height: '28px',
-                                border: '1px solid rgba(0,0,0,0.07)',
-                                background: hoveredActionBtn === dlId ? '#0F0F0E' : '#F7F6F3',
-                                borderColor: hoveredActionBtn === dlId ? '#0F0F0E' : 'rgba(0,0,0,0.07)',
-                                borderRadius: '6px',
-                                display: 'flex',
-                                alignItems: 'center',
-                                justifyContent: 'center',
-                                cursor: 'pointer',
-                                color: hoveredActionBtn === dlId ? '#FFFFFF' : '#6B6B68',
-                                transition: TR,
+                              onClick={async () => {
+                                const { data: { session } } = await supabase.auth.getSession()
+                                const headers: Record<string, string> = {}
+                                if (session?.access_token) headers.Authorization = `Bearer ${session.access_token}`
+                                const r = await fetch(`/api/documents/download/${d.id}`, { headers })
+                                if (!r.ok) return
+                                const j = await r.json() as { url: string }
+                                window.open(j.url, '_blank')
                               }}
                               title="Download"
+                              style={{
+                                width: '28px', height: '28px',
+                                border: '1px solid rgba(0,0,0,0.07)',
+                                background: '#F7F6F3',
+                                borderRadius: '6px',
+                                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                cursor: 'pointer', color: '#6B6B68',
+                              }}
                             >
                               <svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.8">
-                                <path d="M8 2v9M5 8l3 3 3-3" /><path d="M3 14h10" />
+                                <path d="M8 2v9M5 8l3 3 3-3M3 14h10" />
                               </svg>
                             </button>
                           </div>
@@ -862,17 +1006,6 @@ export default function KnowledgePage() {
                   </div>
                 )}
 
-                {/* Timeline tab */}
-                {tab === 'timeline' && (
-                  <div style={{
-                    textAlign: 'center',
-                    padding: '48px 0',
-                    color: '#9A9A96',
-                    fontSize: '13.5px',
-                  }}>
-                    Timeline coming soon
-                  </div>
-                )}
               </div>
             </>
           )}
@@ -884,7 +1017,11 @@ export default function KnowledgePage() {
       ══════════════════════════════════════════ */}
       {showNewClient && (
         <div
-          onClick={resetNewClientModal}
+          onMouseDown={e => { newClientBackdropRef.current = e.target === e.currentTarget }}
+          onMouseUp={e => {
+            if (newClientBackdropRef.current && e.target === e.currentTarget) resetNewClientModal()
+            newClientBackdropRef.current = false
+          }}
           style={{
             position: 'fixed',
             inset: 0,

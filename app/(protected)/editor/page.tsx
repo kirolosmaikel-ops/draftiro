@@ -2,6 +2,15 @@
 
 import { useEffect, useRef, useState } from 'react'
 import { createClient } from '@/lib/supabase/client'
+import DOMPurify from 'isomorphic-dompurify'
+
+// Stored-XSS hardening for the contentEditable HTML. Whitelists common rich-text
+// tags + class/style/href, strips <script>, on*-handlers, javascript: URLs etc.
+const ALLOWED_TAGS = ['p','br','b','i','u','strong','em','h1','h2','h3','h4','ul','ol','li','blockquote','code','pre','span','div','a']
+const ALLOWED_ATTR = ['href','title','class','style']
+function sanitizeHtml(html: string): string {
+  return DOMPurify.sanitize(html, { ALLOWED_TAGS, ALLOWED_ATTR })
+}
 
 // ── Types ──────────────────────────────────────────────────────────────────
 
@@ -27,7 +36,13 @@ const SAMPLE_CONTENT = `<p>Start writing your draft here…</p>`
 export default function EditorPage() {
   const supabase = createClient()
   const editorRef = useRef<HTMLDivElement>(null)
-  const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
+  // Separate timers per-field so a fast typer changing title then content
+  // doesn't lose the title's pending save. Both eventually call saveDraft
+  // which reads from the latest-value refs below.
+  const titleSaveTimer   = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const contentSaveTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const titleRef   = useRef('Untitled Document')
+  const contentRef = useRef('')
 
   // State
   const [drafts, setDrafts] = useState<Draft[]>([])
@@ -38,6 +53,7 @@ export default function EditorPage() {
   const [showPanel, setShowPanel] = useState(false)
   const [showExportDD, setShowExportDD] = useState(false)
   const [exporting, setExporting] = useState(false)
+  const [showDraftsList, setShowDraftsList] = useState(true)
 
   // Hover states
   const [hoveredBtn, setHoveredBtn] = useState<string | null>(null)
@@ -67,15 +83,39 @@ export default function EditorPage() {
     return () => document.removeEventListener('click', close)
   }, [showExportDD])
 
+  // ── Cmd/Ctrl + S to manually save ────────────────────────────────────────
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => {
+      if ((e.metaKey || e.ctrlKey) && (e.key === 's' || e.key === 'S')) {
+        e.preventDefault()
+        saveDraft()
+      }
+    }
+    window.addEventListener('keydown', handler)
+    return () => window.removeEventListener('keydown', handler)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+
+  // Word count from the rendered text content (strip HTML tags first)
+  const wordCount = (() => {
+    const text = content.replace(/<[^>]*>/g, ' ').replace(/&nbsp;/g, ' ').trim()
+    return text ? text.split(/\s+/).length : 0
+  })()
+  const readingMinutes = Math.max(1, Math.round(wordCount / 220)) // ~220 wpm avg
+
   // ── Open a draft ─────────────────────────────────────────────────────────
 
   function openDraft(d: Draft) {
     setActiveDraft(d)
     setTitle(d.title)
     setContent(d.content)
+    titleRef.current = d.title
+    contentRef.current = d.content
     setSaveStatus('idle')
     if (editorRef.current) {
-      editorRef.current.innerHTML = d.content || SAMPLE_CONTENT
+      // Sanitize stored HTML before mounting it as innerHTML — closes the
+      // stored-XSS vector where saved <img onerror=...> would execute on load.
+      editorRef.current.innerHTML = sanitizeHtml(d.content || SAMPLE_CONTENT)
     }
   }
 
@@ -85,26 +125,33 @@ export default function EditorPage() {
     setActiveDraft(null)
     setTitle('Untitled Document')
     setContent('')
+    titleRef.current = 'Untitled Document'
+    contentRef.current = ''
     setSaveStatus('idle')
     if (editorRef.current) {
-      editorRef.current.innerHTML = SAMPLE_CONTENT
+      editorRef.current.innerHTML = sanitizeHtml(SAMPLE_CONTENT)
     }
   }
 
   // ── Handle content change (debounce 2s auto-save) ────────────────────────
 
   function handleContentChange(val: string) {
+    // Sanitize on every keystroke is overkill; we sanitize at save time
+    // (saveDraft) and on load (openDraft). Keep raw value in state so the
+    // user's typing doesn't visibly mutate.
     setContent(val)
+    contentRef.current = val
     setSaveStatus('idle')
-    if (saveTimer.current) clearTimeout(saveTimer.current)
-    saveTimer.current = setTimeout(() => saveDraft(val, title), 2000)
+    if (contentSaveTimer.current) clearTimeout(contentSaveTimer.current)
+    contentSaveTimer.current = setTimeout(() => saveDraft(contentRef.current, titleRef.current), 2000)
   }
 
   function handleTitleChange(val: string) {
     setTitle(val)
+    titleRef.current = val
     setSaveStatus('idle')
-    if (saveTimer.current) clearTimeout(saveTimer.current)
-    saveTimer.current = setTimeout(() => saveDraft(content, val), 2000)
+    if (titleSaveTimer.current) clearTimeout(titleSaveTimer.current)
+    titleSaveTimer.current = setTimeout(() => saveDraft(contentRef.current, titleRef.current), 2000)
   }
 
   // ── Save draft ───────────────────────────────────────────────────────────
@@ -112,35 +159,48 @@ export default function EditorPage() {
   async function saveDraft(body = content, t = title) {
     setSaveStatus('saving')
     try {
-      const { data: { user } } = await supabase.auth.getUser()
-      if (!user) { setSaveStatus('error'); return }
+      const { data: { session } } = await supabase.auth.getSession()
+      if (!session?.user) { setSaveStatus('error'); return }
+      // Sanitize HTML at the boundary — strips scripts, on* handlers, javascript:
+      // URLs etc. Closes the stored-XSS vector where saved content was loaded
+      // back into innerHTML on a future visit.
+      const cleanBody = sanitizeHtml(body)
+      // Trim title to a sane size; the API also enforces a hard cap.
+      const cleanTitle = (t ?? '').slice(0, 200)
+      const headers: Record<string, string> = {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${session.access_token}`,
+      }
 
       if (activeDraft) {
         await fetch('/api/editor/save', {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ id: activeDraft.id, title: t, content: body }),
+          headers,
+          body: JSON.stringify({ id: activeDraft.id, title: cleanTitle, content: cleanBody }),
         })
         setDrafts(prev =>
           prev.map(d => d.id === activeDraft.id
-            ? { ...d, title: t, content: body, updated_at: new Date().toISOString() }
+            ? { ...d, title: cleanTitle, content: cleanBody, updated_at: new Date().toISOString() }
             : d
           )
         )
       } else {
         const res = await fetch('/api/editor/save', {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ title: t, content: body }),
+          headers,
+          body: JSON.stringify({ title: cleanTitle, content: cleanBody }),
         })
         const json = await res.json()
         if (json.id) {
-          const newD: Draft = { id: json.id, title: t, content: body, updated_at: new Date().toISOString() }
+          const newD: Draft = { id: json.id, title: cleanTitle, content: cleanBody, updated_at: new Date().toISOString() }
           setActiveDraft(newD)
           setDrafts(prev => [newD, ...prev])
         }
       }
       setSaveStatus('saved')
+      // Hold the 'Saved' indicator long enough for the user to actually see
+      // it before reverting to idle on next keystroke.
+      setTimeout(() => setSaveStatus(s => s === 'saved' ? 'idle' : s), 2500)
     } catch {
       setSaveStatus('error')
     }
@@ -263,6 +323,53 @@ export default function EditorPage() {
         <ToolbarBtn id="h2" label="H2" command="formatBlock" value="h2" />
 
         <div style={{ marginLeft: 'auto', display: 'flex', gap: '8px', alignItems: 'center' }}>
+          {/* Word count + reading time */}
+          <span
+            title={`${wordCount} words · ~${readingMinutes} min read`}
+            style={{
+              fontSize: '11.5px', color: '#9A9A96', fontFamily: "'DM Sans', sans-serif",
+              marginRight: '4px',
+            }}
+          >
+            {wordCount.toLocaleString()} words · {readingMinutes} min
+          </span>
+          <button
+            onClick={() => setShowDraftsList(p => !p)}
+            title="Toggle drafts list"
+            style={{
+              height: '28px', padding: '0 10px',
+              background: showDraftsList ? '#F7F6F3' : 'none',
+              border: '1px solid rgba(0,0,0,0.08)',
+              borderRadius: '8px',
+              fontSize: '12px', fontWeight: 500, color: '#3A3A38',
+              fontFamily: "'DM Sans', sans-serif",
+              cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: '5px',
+            }}
+          >
+            <svg width="11" height="11" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.6">
+              <rect x="2" y="3" width="12" height="2" rx="0.5" />
+              <rect x="2" y="7" width="12" height="2" rx="0.5" />
+              <rect x="2" y="11" width="12" height="2" rx="0.5" />
+            </svg>
+            Drafts
+          </button>
+          <button
+            onClick={newDraft}
+            title="Start a new draft"
+            style={{
+              height: '28px', padding: '0 12px',
+              background: '#0F0F0E', color: '#fff',
+              border: 'none', borderRadius: '8px',
+              fontSize: '12px', fontWeight: 600,
+              fontFamily: "'DM Sans', sans-serif",
+              cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: '5px',
+            }}
+          >
+            <svg width="11" height="11" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="2.5">
+              <path d="M8 2v12M2 8h12" />
+            </svg>
+            New
+          </button>
           <SaveLabel />
 
           {/* Manual save button */}
@@ -364,7 +471,12 @@ export default function EditorPage() {
                   animation: 'fadeDown 0.12s ease',
                 }}
               >
-                <style>{`@keyframes fadeDown { from { opacity:0; transform:translateY(-4px) } to { opacity:1; transform:translateY(0) } }`}</style>
+                <style>{`
+                  @keyframes fadeDown { from { opacity:0; transform:translateY(-4px) } to { opacity:1; transform:translateY(0) } }
+                  @media (max-width: 1100px) {
+                    .editor-drafts-rail { display: none !important; }
+                  }
+                `}</style>
                 <div
                   onClick={() => exportDoc('docx')}
                   style={{
@@ -383,39 +495,88 @@ export default function EditorPage() {
                   <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5">
                     <rect x="2" y="1" width="9" height="14" rx="1" /><path d="M11 4h3l-3 4h3" />
                   </svg>
-                  Export as .docx
+                  Export as plain .docx
                 </div>
-                <div
-                  onClick={() => exportDoc('pdf')}
-                  style={{
-                    padding: '9px 14px',
-                    fontSize: '13px',
-                    color: '#A0281A',
-                    cursor: 'pointer',
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '8px',
-                    transition: TR,
-                  }}
-                  onMouseEnter={e => (e.currentTarget.style.background = '#F7F6F3')}
-                  onMouseLeave={e => (e.currentTarget.style.background = 'none')}
-                >
-                  <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5">
-                    <rect x="2" y="1" width="12" height="14" rx="1" /><path d="M5 6h6M5 9h6M5 12h4" />
-                  </svg>
-                  Export as .pdf
-                </div>
+                {/* PDF export — hidden until backend is implemented */}
               </div>
             )}
           </div>
         </div>
       </div>
 
-      {/* ── Editor layout ── */}
-      <div style={{ display: 'flex', flex: 1, overflow: 'hidden' }}>
+      {/* ── Editor layout (CSS grid so the main column is forced to 1fr —
+          flex was letting the contentEditable child dictate its own width
+          and the text was wrapping one character per line on narrow widths) ── */}
+      <div
+        className="editor-grid"
+        style={{
+          display: 'grid',
+          gridTemplateColumns: [
+            showDraftsList ? '240px' : null,
+            '1fr',
+            showPanel ? '340px' : null,
+          ].filter(Boolean).join(' '),
+          flex: 1,
+          overflow: 'hidden',
+          minWidth: 0,
+        }}
+      >
+
+        {/* ── Drafts list rail ── */}
+        {showDraftsList && (
+          <div className="editor-drafts-rail" style={{
+            borderRight: '1px solid rgba(0,0,0,0.07)',
+            background: '#FAF9F6',
+            display: 'flex', flexDirection: 'column',
+            overflow: 'hidden',
+          }}>
+            <div style={{
+              padding: '12px 16px', borderBottom: '1px solid rgba(0,0,0,0.07)',
+              fontSize: '11px', fontWeight: 700, letterSpacing: '0.08em',
+              textTransform: 'uppercase', color: '#9A9A96',
+              fontFamily: "'DM Sans', sans-serif",
+            }}>
+              All Drafts
+            </div>
+            <div style={{ flex: 1, overflowY: 'auto', padding: '6px 0' }}>
+              {drafts.length === 0 ? (
+                <div style={{ padding: '20px 16px', fontSize: '12px', color: '#9A9A96', lineHeight: 1.5, fontFamily: "'DM Sans', sans-serif" }}>
+                  No drafts yet. Click <strong>+ New</strong> in the toolbar to start one.
+                </div>
+              ) : drafts.map(d => {
+                const isActive = activeDraft?.id === d.id
+                return (
+                  <button
+                    key={d.id}
+                    onClick={() => openDraft(d)}
+                    style={{
+                      width: '100%', textAlign: 'left',
+                      padding: '8px 16px',
+                      background: isActive ? 'rgba(15,15,14,0.06)' : 'transparent',
+                      border: 'none', cursor: 'pointer', display: 'block',
+                      fontFamily: "'DM Sans', sans-serif",
+                    }}
+                  >
+                    <div style={{
+                      fontSize: '12.5px', fontWeight: 600, color: '#0F0F0E',
+                      whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
+                    }}>
+                      {d.title || 'Untitled Document'}
+                    </div>
+                    <div style={{
+                      fontSize: '10.5px', color: '#9A9A96', marginTop: '2px',
+                    }}>
+                      {new Date(d.updated_at).toLocaleDateString([], { month: 'short', day: 'numeric' })}
+                    </div>
+                  </button>
+                )
+              })}
+            </div>
+          </div>
+        )}
 
         {/* ── Editor main ── */}
-        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+        <div style={{ minWidth: 0, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
 
           {/* Editor canvas */}
           <div style={{
@@ -425,69 +586,7 @@ export default function EditorPage() {
             background: '#F7F6F3',
             position: 'relative',
           }}>
-            {/* AI suggestion card (floating, left of page) */}
             <div style={{ maxWidth: '680px', margin: '0 auto', position: 'relative' }}>
-              <div style={{
-                position: 'absolute',
-                left: '-200px',
-                top: '80px',
-                width: '182px',
-                background: '#FFFFFF',
-                border: '1px solid rgba(0,0,0,0.07)',
-                borderRadius: '14px',
-                padding: '12px 14px',
-                boxShadow: '0 2px 12px rgba(0,0,0,0.08)',
-              }}>
-                <div style={{
-                  fontSize: '9px',
-                  fontWeight: 700,
-                  letterSpacing: '0.12em',
-                  textTransform: 'uppercase',
-                  color: '#8B6914',
-                  marginBottom: '6px',
-                  fontFamily: "'DM Sans', sans-serif",
-                }}>
-                  AI Suggestion
-                </div>
-                <p style={{
-                  fontSize: '11.5px',
-                  color: '#3A3A38',
-                  lineHeight: 1.4,
-                  marginBottom: '10px',
-                  fontFamily: "'DM Sans', sans-serif",
-                }}>
-                  Consider adding a Force Majeure clause to protect against unforeseen events.
-                </p>
-                <div style={{ display: 'flex', gap: '5px' }}>
-                  <button style={{
-                    background: '#0F0F0E',
-                    color: '#FFFFFF',
-                    border: 'none',
-                    borderRadius: '6px',
-                    padding: '4px 10px',
-                    fontSize: '10.5px',
-                    fontWeight: 600,
-                    cursor: 'pointer',
-                    fontFamily: "'DM Sans', sans-serif",
-                  }}>
-                    Accept
-                  </button>
-                  <button style={{
-                    background: 'none',
-                    border: '1px solid rgba(0,0,0,0.07)',
-                    borderRadius: '6px',
-                    padding: '4px 10px',
-                    fontSize: '10.5px',
-                    fontWeight: 600,
-                    color: '#6B6B68',
-                    cursor: 'pointer',
-                    fontFamily: "'DM Sans', sans-serif",
-                  }}>
-                    Dismiss
-                  </button>
-                </div>
-              </div>
-
               {/* Editor page */}
               <div style={{
                 background: '#FFFFFF',
@@ -501,7 +600,6 @@ export default function EditorPage() {
                   contentEditable
                   suppressContentEditableWarning
                   onInput={e => handleContentChange((e.target as HTMLDivElement).innerHTML)}
-                  dangerouslySetInnerHTML={{ __html: content || SAMPLE_CONTENT }}
                   style={{
                     fontFamily: "'Newsreader', serif",
                     fontSize: '14px',
@@ -509,6 +607,9 @@ export default function EditorPage() {
                     color: '#3A3A38',
                     outline: 'none',
                     minHeight: '700px',
+                    width: '100%',
+                    wordBreak: 'break-word',
+                    overflowWrap: 'break-word',
                   }}
                 />
               </div>
@@ -516,14 +617,11 @@ export default function EditorPage() {
           </div>
         </div>
 
-        {/* ── Right AI Panel ── */}
-        <div style={{
-          width: showPanel ? '340px' : '0px',
+        {/* ── Right AI Panel (rendered only when open; grid column drops away) ── */}
+        {showPanel && <div style={{
           overflow: 'hidden',
-          transition: 'width 0.28s cubic-bezier(0.4,0,0.2,1)',
           background: '#FFFFFF',
-          borderLeft: showPanel ? '1px solid rgba(0,0,0,0.07)' : '1px solid transparent',
-          flexShrink: 0,
+          borderLeft: '1px solid rgba(0,0,0,0.07)',
           display: 'flex',
           flexDirection: 'column',
         }}>
@@ -581,155 +679,49 @@ export default function EditorPage() {
               <span style={{ flex: 1, height: '1px', background: 'rgba(0,0,0,0.07)', display: 'block' }} />
             </div>
 
-            {[
-              { title: 'Smith v. Jones, 2019', court: '9th Cir.', quote: '"…the obligation of good faith extends to all contractual dealings…"' },
-              { title: 'Baker Corp. v. Reed, 2021', court: 'S.D.N.Y.', quote: '"…force majeure clauses must be construed narrowly…"' },
-            ].map((c, i) => (
-              <div key={i} style={{
-                background: '#F7F6F3',
-                borderRadius: '10px',
-                padding: '12px',
-                marginBottom: '8px',
-                border: '1px solid rgba(0,0,0,0.07)',
-              }}>
-                <div style={{ fontSize: '12.5px', fontWeight: 600, color: '#0F0F0E', marginBottom: '2px' }}>{c.title}</div>
-                <div style={{ fontSize: '11px', color: '#6B6B68', marginBottom: '8px' }}>{c.court}</div>
-                <div style={{
-                  fontSize: '11.5px',
-                  color: '#3A3A38',
-                  lineHeight: 1.5,
-                  fontStyle: 'italic',
-                  borderLeft: '2px solid #C9A84C',
-                  paddingLeft: '8px',
-                  marginBottom: '8px',
-                }}>
-                  {c.quote}
-                </div>
-                <button style={{
-                  fontSize: '11px',
-                  fontWeight: 600,
-                  color: '#1A4FBF',
-                  background: '#EEF3FF',
-                  border: 'none',
-                  padding: '4px 10px',
-                  borderRadius: '6px',
-                  cursor: 'pointer',
-                  fontFamily: "'DM Sans', sans-serif",
-                }}>
-                  Insert
-                </button>
-              </div>
-            ))}
-
-            {/* Clause Alternatives section */}
             <div style={{
-              fontSize: '10px',
-              fontWeight: 700,
-              letterSpacing: '0.1em',
-              textTransform: 'uppercase',
-              color: '#9A9A96',
-              margin: '16px 0 10px',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '6px',
-              fontFamily: "'DM Sans', sans-serif",
+              background: '#F7F6F3',
+              borderRadius: '12px',
+              padding: '28px 18px',
+              border: '1px dashed rgba(0,0,0,0.10)',
+              textAlign: 'center',
             }}>
-              Clause Alternatives
-              <span style={{ flex: 1, height: '1px', background: 'rgba(0,0,0,0.07)', display: 'block' }} />
-            </div>
-
-            {[
-              'Either Party may terminate this Agreement upon thirty (30) days written notice to the other Party.',
-              'This Agreement shall automatically renew for successive one-year terms unless terminated by either Party with sixty (60) days prior written notice.',
-            ].map((clause, i) => (
-              <div key={i} style={{
-                background: '#F7F6F3',
-                borderRadius: '10px',
-                padding: '12px',
-                marginBottom: '8px',
-                border: '1px solid rgba(0,0,0,0.07)',
+              <div style={{ fontSize: '24px', marginBottom: '8px', lineHeight: 1 }}>✨</div>
+              <div style={{
+                fontSize: '13px',
+                fontWeight: 600,
+                color: '#3A3A38',
+                marginBottom: '4px',
+                fontFamily: "'DM Sans', sans-serif",
               }}>
-                <p style={{
-                  fontSize: '12px',
-                  color: '#3A3A38',
-                  lineHeight: 1.5,
-                  marginBottom: '8px',
-                  fontFamily: "'Newsreader', serif",
-                }}>
-                  {clause}
-                </p>
-                <button style={{
-                  fontSize: '11px',
-                  fontWeight: 600,
-                  color: '#1A7A4A',
-                  background: '#E8F5EE',
-                  border: 'none',
-                  padding: '4px 10px',
-                  borderRadius: '6px',
-                  cursor: 'pointer',
-                  fontFamily: "'DM Sans', sans-serif",
-                }}>
-                  Use this
-                </button>
+                Citations & clause suggestions
               </div>
-            ))}
+              <div style={{
+                fontSize: '11.5px',
+                color: '#9A9A96',
+                lineHeight: 1.5,
+                fontFamily: "'DM Sans', sans-serif",
+              }}>
+                Coming soon — ask the AI panel below for help drafting from your case documents.
+              </div>
+            </div>
           </div>
 
-          {/* Panel chat input */}
+          {/* Panel chat input — disabled until backend is wired. Use the
+              dedicated /chat page for real AI conversations. */}
           <div style={{
             borderTop: '1px solid rgba(0,0,0,0.07)',
             padding: '12px',
             flexShrink: 0,
+            fontSize: '11.5px',
+            color: '#9A9A96',
+            fontFamily: "'DM Sans', sans-serif",
+            textAlign: 'center',
+            lineHeight: 1.5,
           }}>
-            <div style={{
-              display: 'flex',
-              alignItems: 'flex-end',
-              gap: '8px',
-              background: '#F7F6F3',
-              border: '1px solid rgba(0,0,0,0.07)',
-              borderRadius: '10px',
-              padding: '8px 36px 8px 12px',
-              position: 'relative',
-            }}>
-              <textarea
-                placeholder="Ask AI anything…"
-                rows={1}
-                style={{
-                  flex: 1,
-                  border: 'none',
-                  background: 'none',
-                  outline: 'none',
-                  fontSize: '12.5px',
-                  fontFamily: "'DM Sans', sans-serif",
-                  color: '#0F0F0E',
-                  resize: 'none',
-                  minHeight: '20px',
-                  maxHeight: '80px',
-                }}
-              />
-              <button style={{
-                position: 'absolute',
-                right: '8px',
-                bottom: '8px',
-                width: '30px',
-                height: '30px',
-                background: '#0F0F0E',
-                border: 'none',
-                borderRadius: '6px',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                cursor: 'pointer',
-                flexShrink: 0,
-                transition: TR,
-              }}>
-                <svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="#fff" strokeWidth="1.8">
-                  <path d="M2 14l12-6L2 2v5l8 1-8 1v5z" />
-                </svg>
-              </button>
-            </div>
+            For full AI chat, use the <a href="/chat" style={{ color: '#1A4FBF', fontWeight: 600 }}>Cases &amp; Documents</a> page.
           </div>
-        </div>
+        </div>}
       </div>
     </div>
   )
